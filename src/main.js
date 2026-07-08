@@ -8,6 +8,9 @@ import { Dog } from './dog.js';
 import { Ambient } from './ambient.js';
 import { AudioEngine } from './audio.js';
 import { setupInput } from './input.js';
+import { PixelRenderer } from './pixel/renderer.js';
+import { bayer } from './pixel/palette.js';
+import { setupStyleUI } from './styleui.js';
 
 const DT = 1 / 60;
 const MAX_STEPS = 5;
@@ -16,12 +19,46 @@ const canvas = document.getElementById('pond');
 const ctx = canvas.getContext('2d');
 const bgCanvas = document.createElement('canvas');
 
+// Style-swap dissolve state: the incoming style renders to swapCanvas and is
+// revealed through cached ordered-dither masks, chunkiest possible crossfade.
+let styleSwap = null; // { from, to, t }
+const swapCanvas = document.createElement('canvas');
+const swapCtx = swapCanvas.getContext('2d');
+const maskCache = [];
+
+function maskFor(step) {
+  if (!maskCache[step]) {
+    const S = game.pixel.S;
+    const w = Math.ceil(game.layout.vw / S);
+    const h = Math.ceil(game.layout.vh / S);
+    const mc = document.createElement('canvas');
+    mc.width = w;
+    mc.height = h;
+    const mctx = mc.getContext('2d');
+    const img = mctx.createImageData(w, h);
+    const p = step / 16;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        img.data[(y * w + x) * 4 + 3] = bayer(x, y) < p ? 255 : 0;
+      }
+    }
+    mctx.putImageData(img, 0, 0);
+    maskCache[step] = mc;
+  }
+  return maskCache[step];
+}
+
 const DEBUG = new URLSearchParams(location.search).has('debug');
+
+let storedStyle = null;
+try { storedStyle = localStorage.getItem('pondStyle'); } catch (e) { /* storage blocked */ }
 
 const game = {
   layout: null,
   water: new Water(),
   audio: new AudioEngine(),
+  pixel: new PixelRenderer(),
+  styleMode: storedStyle === 'pixel' ? 'pixel' : 'painted',
   fishes: [],
   food: null,
   dog: null,
@@ -29,6 +66,16 @@ const game = {
   time: 0,
   night: false,
   nightT: 0, // 0 day → 1 night, eased over ~3s
+
+  // Costume change: same garden, different rendering language. The swap is
+  // an ordered-dither dissolve — the transition itself speaks pixel.
+  setStyle(s) {
+    if (s === this.styleMode || styleSwap) return;
+    try { localStorage.setItem('pondStyle', s); } catch (e) { /* storage blocked */ }
+    styleSwap = { from: this.styleMode, to: s, t: 0 };
+    this.styleMode = s;
+    this.audio.setChip(s === 'pixel');
+  },
 
   poke(x, y) {
     this.water.disturb(x, y, 2.2, 2.2);
@@ -56,6 +103,7 @@ const HINTS = [
   { text: 'the pup loves a little pat', need: () => game.dog.state !== 'offscreen' && !game.dog.asleep },
   { text: 'does the frog have anything to say?', need: () => !!game.ambient.frog },
   { text: 'shh… listen to the garden', need: () => game.audio.unlocked && game.audio.enabled },
+  { text: 'a little tab on the left hides another world' },
   { text: 'a gentle pat will send the sleepy pup home', need: () => game.dog.asleep, urgent: true },
 ];
 const hintEl = document.getElementById('actionHint');
@@ -111,6 +159,10 @@ function resize() {
   game.layout = computeLayout(vw, vh);
   renderBackground(bgCanvas, game.layout, dpr);
   game.water.resize(game.layout);
+  game.pixel.resize(game.layout);
+  swapCanvas.width = canvas.width;
+  swapCanvas.height = canvas.height;
+  maskCache.length = 0;
 
   if (!game.fishes.length) {
     game.fishes = createSchool(game.layout);
@@ -142,6 +194,9 @@ window.addEventListener('pageshow', () => {
 });
 resize();
 setupInput(canvas, game);
+setupStyleUI(game);
+document.body.classList.toggle('pixel-mode', game.styleMode === 'pixel');
+game.audio.setChip(game.styleMode === 'pixel');
 
 // Sound toggle button.
 const soundBtn = document.getElementById('soundToggle');
@@ -185,12 +240,13 @@ function step(dt) {
   // Dusk/dawn: ease toward night over ~3 seconds.
   const target = game.night ? 1 : 0;
   game.nightT += Math.sign(target - game.nightT) * Math.min(dt / 3, Math.abs(target - game.nightT));
+
+  if (styleSwap) styleSwap.t += dt / 0.6;
 }
 
 let fps = 0, fpsFrames = 0, fpsTime = 0;
 
-function render() {
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+function drawPainted(ctx) {
   const t = game.time;
 
   // 1. Static painterly background.
@@ -253,6 +309,39 @@ function render() {
 
     // Fireflies over everything.
     game.ambient.drawFireflies(ctx, t, nt);
+  }
+}
+
+function drawStyle(mode, g) {
+  if (mode === 'pixel') game.pixel.render(g, game);
+  else drawPainted(g);
+}
+
+function render() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const { vw, vh } = game.layout;
+
+  if (!styleSwap) {
+    drawStyle(game.styleMode, ctx);
+  } else {
+    const p = Math.min(1, styleSwap.t);
+    drawStyle(styleSwap.from, ctx);
+    // Incoming style, revealed cell by cell through the dither mask.
+    swapCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    swapCtx.clearRect(0, 0, vw, vh);
+    drawStyle(styleSwap.to, swapCtx);
+    const step = Math.max(1, Math.ceil(p * 16));
+    swapCtx.globalCompositeOperation = 'destination-in';
+    swapCtx.imageSmoothingEnabled = false;
+    swapCtx.drawImage(maskFor(step), 0, 0, vw, vh);
+    swapCtx.globalCompositeOperation = 'source-over';
+    swapCtx.imageSmoothingEnabled = true;
+    ctx.drawImage(swapCanvas, 0, 0, vw, vh);
+    if (p >= 1) {
+      document.body.classList.toggle('pixel-mode', styleSwap.to === 'pixel');
+      styleSwap = null;
+      if (game._reflectStyle) game._reflectStyle();
+    }
   }
 
   if (DEBUG) {

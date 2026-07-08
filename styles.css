@@ -105,3 +105,153 @@ html, body {
 #actionHint.hidden {
   opacity: 0;
 }
+
+/* --- Style selector: a quiet inventory flap on the left edge ------------- */
+
+#styleDock {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+#styleTab {
+  display: block;
+  width: 36px;
+  height: 78px;
+  border: none;
+  border-left: none;
+  border-radius: 0 14px 14px 0;
+  background: rgba(255, 252, 245, 0.65);
+  box-shadow: 0 2px 8px rgba(60, 50, 30, 0.25);
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+#styleTab:hover {
+  transform: translateX(3px);
+  background: rgba(255, 252, 245, 0.85);
+}
+
+#stylePanel {
+  position: absolute;
+  left: 44px;
+  top: 50%;
+  transform: translate(-16px, -50%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.24s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease, visibility 0s 0.24s;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  background: rgba(255, 252, 245, 0.92);
+  border: 2px solid #8a6f4d;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(60, 50, 30, 0.3), inset 0 0 0 1px rgba(138, 111, 77, 0.25);
+}
+
+#stylePanel.open {
+  transform: translate(0, -50%);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.panelTitle {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: #5a4f3a;
+  text-align: center;
+}
+
+.styleCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 9px 5px;
+  border: 2px solid rgba(138, 111, 77, 0.25);
+  border-radius: 9px;
+  background: rgba(90, 79, 58, 0.05);
+  cursor: pointer;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: #5a4f3a;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.styleCard:hover {
+  background: rgba(90, 79, 58, 0.12);
+}
+
+.styleCard[aria-pressed="true"] {
+  border-color: #c9a05a;
+  background: rgba(201, 160, 90, 0.16);
+}
+
+.styleCard canvas {
+  display: block;
+  width: 64px;
+  height: 44px;
+  border-radius: 4px;
+}
+
+.styleCard[data-style="pixel"] canvas {
+  image-rendering: pixelated;
+}
+
+#styleTab:focus-visible,
+.styleCard:focus-visible,
+#soundToggle:focus-visible,
+#nightToggle:focus-visible {
+  outline: 2px solid #c9a05a;
+  outline-offset: 2px;
+}
+
+/* --- 8-bit chrome: same whisper, bitmap voice ----------------------------- */
+
+body.pixel-mode #soundHint,
+body.pixel-mode #actionHint,
+body.pixel-mode .panelTitle,
+body.pixel-mode .styleCard {
+  font-family: 'Pixelify Sans', 'Courier New', monospace;
+  font-style: normal;
+}
+
+body.pixel-mode #soundHint,
+body.pixel-mode #actionHint {
+  border-radius: 3px;
+}
+
+body.pixel-mode #styleTab {
+  border-radius: 0 6px 6px 0;
+}
+
+body.pixel-mode #stylePanel {
+  border-radius: 4px;
+}
+
+body.pixel-mode .styleCard,
+body.pixel-mode .styleCard canvas {
+  border-radius: 2px;
+}
+
+body.pixel-mode #soundToggle,
+body.pixel-mode #nightToggle {
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #stylePanel,
+  #styleTab,
+  .styleCard {
+    transition: none;
+  }
+}

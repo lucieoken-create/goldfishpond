@@ -14,6 +14,11 @@ export class AudioEngine {
     this.birdTimer = rand(4, 9);
     this.cricketTimer = rand(1, 4);
     this.nightT = 0;
+    this.chip = false; // 8-bit mode: square/triangle timbres, stepped pitch
+  }
+
+  setChip(on) {
+    this.chip = !!on;
   }
 
   // Called on first user gesture.
@@ -239,6 +244,14 @@ export class AudioEngine {
   // A cricket: a fast train of tiny high pulses.
   cricketChirp() {
     if (!this.ready()) return;
+    if (this.chip) {
+      const f = rand(3800, 4400);
+      const pulses = 4 + Math.floor(rand(0, 4));
+      for (let i = 0; i < pulses; i++) {
+        this.chipBlip('triangle', [f], 0.03, 0.014, 0.05 + i * 0.06);
+      }
+      return;
+    }
     let t = this.ctx.currentTime + 0.05;
     const pulses = 5 + Math.floor(rand(0, 5));
     const f = rand(3800, 4600);
@@ -262,6 +275,18 @@ export class AudioEngine {
   // frequency sweep around a randomized base pitch.
   birdSong() {
     if (!this.ready()) return;
+    if (this.chip) {
+      // Stepped square notes on a little pentatonic walk.
+      const scale = [2349, 2637, 2960, 3520, 3951];
+      let delay = 0;
+      const notes = 2 + Math.floor(rand(0, 4));
+      for (let i = 0; i < notes; i++) {
+        const f = scale[Math.floor(rand(0, scale.length))];
+        this.chipBlip('square', [f, f * rand(0.95, 1.12)], 0.045, 0.009, delay);
+        delay += rand(0.1, 0.22);
+      }
+      return;
+    }
     let t = this.ctx.currentTime + 0.05;
     const notes = 2 + Math.floor(rand(0, 4));
     const base = rand(2300, 3600);
@@ -290,9 +315,32 @@ export class AudioEngine {
     return this.ctx && this.enabled;
   }
 
+  // Chip-mode voice: an oscillator stepping through quantized pitches with a
+  // flat, hard-cut envelope — the whole "8-bit instrument" in one helper.
+  chipBlip(type, steps, stepDur, level, delay = 0) {
+    const t0 = this.ctx.currentTime + delay;
+    const osc = this.ctx.createOscillator();
+    osc.type = type;
+    steps.forEach((f, i) => osc.frequency.setValueAtTime(f, t0 + i * stepDur));
+    const dur = steps.length * stepDur;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(level, t0);
+    g.gain.setValueAtTime(level, t0 + dur * 0.7);
+    g.gain.linearRampToValueAtTime(0, t0 + dur);
+    osc.connect(g);
+    g.connect(this.master);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  }
+
   // Water plip: sine sweep down + tiny noise burst.
   plip(volume = 1, pitchMul = 1) {
     if (!this.ready()) return;
+    if (this.chip) {
+      const f = 540 * pitchMul * rand(0.9, 1.1);
+      this.chipBlip('square', [f, f * 0.75, f * 0.5], 0.03, 0.032 * volume);
+      return;
+    }
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const g = this.ctx.createGain();
@@ -326,6 +374,9 @@ export class AudioEngine {
   splash(volume = 1) {
     if (!this.ready()) return;
     this.plip(volume * 1.3, 0.7);
+    if (this.chip) {
+      this.chipBlip('square', [420, 300, 220, 160], 0.035, 0.022 * volume, 0.02);
+    }
     const t = this.ctx.currentTime;
     const n = this.ctx.createBufferSource();
     n.buffer = this.noiseBuf;
@@ -355,6 +406,10 @@ export class AudioEngine {
   // Fish eating: quiet low gulp.
   gulp() {
     if (!this.ready()) return;
+    if (this.chip) {
+      this.chipBlip('triangle', [190, 130, 85], 0.04, 0.06);
+      return;
+    }
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const g = this.ctx.createGain();
@@ -371,6 +426,10 @@ export class AudioEngine {
   // Dog lapping: short wet noise tick.
   lap() {
     if (!this.ready()) return;
+    if (this.chip) {
+      this.chipBlip('square', [rand(640, 780)], 0.04, 0.018);
+      return;
+    }
     const t = this.ctx.currentTime;
     const n = this.ctx.createBufferSource();
     n.buffer = this.noiseBuf;
@@ -396,6 +455,12 @@ export class AudioEngine {
   // Frog croak: low buzzy sweep with a fast amplitude wobble.
   croak() {
     if (!this.ready()) return;
+    if (this.chip) {
+      // A ribbit is just two gravelly square steps down, twice.
+      this.chipBlip('square', [98, 78], 0.07, 0.028);
+      this.chipBlip('square', [92, 72], 0.07, 0.024, 0.18);
+      return;
+    }
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     osc.type = 'sawtooth';
