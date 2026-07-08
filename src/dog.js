@@ -467,13 +467,29 @@ export class Dog {
     if (lie < 0.55) {
       this.drawLegPair(ctx, s, legH, cy, bodyH, bodyLen, walking, false);
     } else {
-      // Lying down: front paws tucked forward under the chin.
-      ctx.fillStyle = COAT;
-      for (const px of [0.44, 0.52]) {
+      // Lying down ("sploot"): front legs stretched forward along the ground
+      // with paws under the chin, rear haunch rounded with a tucked paw.
+      ctx.strokeStyle = COAT;
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 4.6 * s;
+      for (const [ox, py] of [[0.28, -4.5], [0.33, -1.5]]) {
         ctx.beginPath();
-        ctx.ellipse(bodyLen * px, -1.5 * s, 4.5 * s, 2.4 * s, 0, 0, TAU);
+        ctx.moveTo(bodyLen * ox, cy + bodyH * 0.3);
+        ctx.lineTo(bodyLen * (ox + 0.23), py * s);
+        ctx.stroke();
+        ctx.fillStyle = COAT;
+        ctx.beginPath();
+        ctx.ellipse(bodyLen * (ox + 0.26), py * s, 3.8 * s, 2.3 * s, 0, 0, TAU);
         ctx.fill();
       }
+      // Rear haunch: rounded thigh over the hip + a peeking back paw.
+      ctx.fillStyle = COAT_DEEP;
+      ctx.beginPath();
+      ctx.ellipse(-bodyLen * 0.3, cy + bodyH * 0.18, bodyH * 0.46, bodyH * 0.42, 0.12, 0, TAU);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(-bodyLen * 0.16, -1.8 * s, 4 * s, 2.4 * s, 0, 0, TAU);
+      ctx.fill();
     }
 
     // --- Head ---

@@ -47,39 +47,49 @@ const game = {
   },
 };
 
-// Gentle nudges toward the interactions, cycling forever (~11s per hint:
-// 5.5s visible, 5.5s quiet). Hints that don't apply right now are skipped.
+// Gentle nudges toward the interactions, cycling forever (~7.5s per hint:
+// 4.5s visible, 3s quiet). Hints that don't apply right now are skipped, and
+// urgent contextual hints (like the sleeping pup) jump the queue.
 const HINTS = [
   { text: 'poke the water' },
   { text: 'the little cup by the pond holds fish food' },
   { text: 'the pup loves a little pat', need: () => game.dog.state !== 'offscreen' && !game.dog.asleep },
+  { text: 'does the frog have anything to say?', need: () => !!game.ambient.frog },
   { text: 'shh… listen to the garden', need: () => game.audio.unlocked && game.audio.enabled },
-  { text: 'a gentle pat will send the sleepy pup home', need: () => game.dog.asleep },
+  { text: 'a gentle pat will send the sleepy pup home', need: () => game.dog.asleep, urgent: true },
 ];
 const hintEl = document.getElementById('actionHint');
 let hintIdx = -1;
 let hintVisible = false;
 let hintAt = 8; // first hint fades in at t=8s
 
+function showHint(h, time) {
+  h.lastAt = time;
+  hintEl.textContent = h.text;
+  hintEl.classList.remove('hidden');
+  hintVisible = true;
+  hintAt = time + 4.5;
+}
+
 function updateHints(time) {
   if (time < hintAt) return;
   if (!hintVisible) {
+    // Urgent hints first (unless shown within the last 20s).
+    for (const h of HINTS) {
+      if (h.urgent && h.need() && (h.lastAt === undefined || time - h.lastAt > 20)) {
+        return showHint(h, time);
+      }
+    }
     for (let k = 0; k < HINTS.length; k++) {
       hintIdx = (hintIdx + 1) % HINTS.length;
       const h = HINTS[hintIdx];
-      if (!h.need || h.need()) {
-        hintEl.textContent = h.text;
-        hintEl.classList.remove('hidden');
-        hintVisible = true;
-        hintAt = time + 5.5;
-        return;
-      }
+      if (!h.need || h.need()) return showHint(h, time);
     }
-    hintAt = time + 4; // nothing applicable — try again shortly
+    hintAt = time + 3; // nothing applicable — try again shortly
   } else {
     hintEl.classList.add('hidden');
     hintVisible = false;
-    hintAt = time + 5.5;
+    hintAt = time + 3;
   }
 }
 

@@ -6,6 +6,11 @@
       (palette-cycling pixel art). Likely a render-mode switch: pixelated
       low-res canvas upscaled with `imageSmoothingEnabled = false`, chunky
       sprites, limited palette — biggest-ticket item, design before building.
+      **UI direction from Lucie:** the switcher should be a little tab on the
+      LEFT side of the screen, like a video-game inventory menu tab — clearly
+      differentiated from the day/night and sound toggles (top-right circles).
+      Consider running the `impeccable` design skill on this UI, and a
+      `/code-review` pass at the start of the 8-bit session.
 
 ## Pending
 - [ ] Listen pass: crickets + frog croak at night, birds by day — judge on

@@ -45,7 +45,13 @@ export class AudioEngine {
     this.startWaterLap();
     this.startRustle();
 
-    if (this.enabled) this.fadeTo(1, 1.2);
+    if (this.enabled) {
+      this.fadeTo(1, 1.2);
+    } else {
+      // Unlocked while muted: park the context suspended.
+      this.ctx.suspend();
+      if (this.keepalive) this.keepalive.pause();
+    }
   }
 
   // A tiny silent looping WAV in an <audio> element. Its only job is to keep
@@ -95,7 +101,25 @@ export class AudioEngine {
   toggle() {
     this.enabled = !this.enabled;
     localStorage.setItem('pondSound', this.enabled ? 'on' : 'off');
-    if (this.master) this.fadeTo(this.enabled ? 1 : 0, 0.6);
+    clearTimeout(this._suspendTimer);
+    if (this.ctx) {
+      if (this.enabled) {
+        // Resume first (mute suspends the context), then fade back in.
+        this.ctx.resume();
+        if (this.keepalive) this.keepalive.play().catch(() => {});
+        this.fadeTo(1, 0.6);
+      } else {
+        this.fadeTo(0, 0.5);
+        // Belt and braces: some browsers mishandle gain automation, so after
+        // the fade, suspend the context outright — guaranteed silence.
+        this._suspendTimer = setTimeout(() => {
+          if (!this.enabled && this.ctx) {
+            this.ctx.suspend();
+            if (this.keepalive) this.keepalive.pause();
+          }
+        }, 550);
+      }
+    }
     return this.enabled;
   }
 
