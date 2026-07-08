@@ -87,16 +87,13 @@ const game = {
   petDog() {
     this.dog.pet();
   },
-
-  hideHint() {
-    document.getElementById('soundHint').classList.add('hidden');
-  },
 };
 
 // Gentle nudges toward the interactions, cycling forever (~7.5s per hint:
 // 4.5s visible, 3s quiet). Hints that don't apply right now are skipped, and
 // urgent contextual hints (like the sleeping pup) jump the queue.
 const HINTS = [
+  { text: 'tap anywhere to hear the garden', need: () => game.audio.enabled && !game.audio.unlocked, urgent: true },
   { text: 'poke the water' },
   { text: 'the little cup by the pond holds fish food' },
   { text: 'the pup loves a little pat', need: () => game.dog.state !== 'offscreen' && !game.dog.asleep },
@@ -215,7 +212,6 @@ const soundBtn = document.getElementById('soundToggle');
 const soundIcon = document.getElementById('soundIcon');
 soundBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  game.hideHint();
   // If this click is the first gesture and sound is already preferred on,
   // unlock() alone starts the ambience — toggling too would mute it again.
   const firstGestureStartsSound = !game.audio.unlocked && game.audio.enabled;
@@ -232,7 +228,6 @@ const nightIcon = document.getElementById('nightIcon');
 nightBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   game.audio.unlock();
-  game.hideHint();
   game.night = !game.night;
   nightIcon.textContent = game.night ? '☀️' : '🌙';
   document.title = game.night ? 'Goldfish Pond ☾' : 'Goldfish Pond';

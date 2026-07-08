@@ -7,7 +7,6 @@ export function setupInput(canvas, game) {
   canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     game.audio.unlock();
-    game.hideHint();
     if (!game.layout) return; // booted hidden — nothing laid out to hit yet
     const { x, y } = toScene(e, canvas);
     downX = x; downY = y; moved = false;

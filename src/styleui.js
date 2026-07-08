@@ -26,7 +26,6 @@ export function setupStyleUI(game) {
   tab.addEventListener('click', (e) => {
     e.stopPropagation();
     game.audio.unlock();
-    game.hideHint();
     setOpen(!isOpen());
   });
 
