@@ -15,8 +15,8 @@ Canonical palette lives in `src/util.js` (`PALETTE`) and is painted, not tokeniz
 - **Water** (deep→shallow): `#26485a`, `#33596a`, `#3f6774`, `#4b7379`
 - **Foliage**: greens `#4a6741 → #6b8a55`, dark `#2f4229`; plum accents `#5c3a44`, `#6e4550`, `#4a2f38`
 - **Lily pads**: `#5d8a4f` / dark `#456e3a` / light `#74a163`; lotus pinks `#e8a7b8`, `#f0bccb`, center `#f5d76e`
-- **Goldfish**: orange `#e8853a`, deep `#d46a25`, white `#f2ede2` (fish schemes hardcode these in `fish.js`)
-- **Dachshund**: coat `#b5713a`, deep `#96562a`, cream `#d9a86c` (hardcoded in `dog.js`)
+- **Goldfish**: orange `#e8853a`, deep `#d46a25`, white `#f2ede2`
+- **Dachshund**: coat `#b5713a`, deep `#96562a`, cream `#d9a86c`
 - **Chrome**: warm translucent cream `rgba(255,252,245,0.6–0.85)`, ink `#5a4f3a`, shadow `rgba(60,50,30,0.25)`
 - **Night**: multiply toward `rgb(105,127,187)`-ish, wash `rgba(18,26,64,…)`, moonlight `rgba(190,210,250,…)`, firefly `rgba(226,240,150,…)`
 
@@ -30,16 +30,15 @@ Canonical palette lives in `src/util.js` (`PALETTE`) and is painted, not tokeniz
 
 ## Components
 
-- **Circle toggles** (`#soundToggle`, `#nightToggle`): fixed top-right stack, 44×44, `border-radius: 50%`, translucent cream, emoji glyph, hover scale 1.08. The established chrome pattern — new controls match this restraint or go diegetic.
-- **Hint pills** (`#soundHint`, `#actionHint`): translucent cream rounded pills, Georgia italic, fade via opacity transitions (0.8–1.2s). Action hints cycle ~7.5s with a 20s per-hint suppression; urgent hints jump the queue.
+- **Inventory dock** (`#styleDock`): ALL chrome lives here — a left-edge column of flaps (art-style tab `#styleTab`, `#soundToggle`, `#nightToggle`) tucked 8px past the screen edge, 2px `#8a6f4d` border, cream fill, hover slides out without ever opening a gap. The style tab opens `#stylePanel`, a bordered inventory panel with two style cards ("watercolor" / "pixel"). New controls join this dock or go diegetic; nothing floats top-right.
+- **Hint pill** (`#actionHint`): one translucent cream centered pill, bottom-center, Georgia italic (Pixelify Sans in pixel mode), fading via opacity. Hints cycle ~7.5s with a 20s per-hint suppression; urgent hints jump the queue and retire early when their condition stops applying. The first-run sound prompt lives in this cycle, not as separate chrome.
 - **In-world affordances**: the food cup on the coping (armed state = lift + glow ring), the pettable dog, the pokeable frog. Diegetic beats chrome.
-- **Planned — style selector tab**: left-edge tab styled like a video-game inventory menu; visually distinct from the circle toggles but equally quiet at rest.
 
 ## Layout
 
 - Full-viewport canvas; the pond is a rounded rect (`radius = 0.08 × min dimension`) centered with margins: ~20% x (14% portrait), ~18% top, ~26% bottom (dog path lives in the bottom band).
 - Layer order (in `main.js render()`): painterly background (offscreen, rebuilt on resize) → fish shadows/pellets/fish (clipped to pond) → water shimmer/ripples → lily pads/flyers → cup+dog (cup pops above while lifted) → night multiply + glow layers.
-- Chrome anchors: toggles top-right, sound hint beside them, action hint bottom-center. Left edge is free — reserved for the style-selector tab.
+- Chrome anchors: the inventory dock mid-left, action hint bottom-center. Top and right edges stay clear — the pond owns the frame.
 
 ## Motion
 

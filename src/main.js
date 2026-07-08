@@ -71,7 +71,8 @@ const game = {
   // Costume change: same garden, different rendering language. The swap is
   // an ordered-dither dissolve — the transition itself speaks pixel.
   setStyle(s) {
-    if (s === this.styleMode || styleSwap) return;
+    if (styleSwap) { styleSwap.next = s; return; } // honor the latest wish after the dissolve
+    if (s === this.styleMode) return;
     try { localStorage.setItem('pondStyle', s); } catch (e) { /* storage blocked */ }
     styleSwap = { from: this.styleMode, to: s, t: 0 };
     this.styleMode = s;
@@ -105,10 +106,12 @@ const HINTS = [
 const hintEl = document.getElementById('actionHint');
 let hintIdx = -1;
 let hintVisible = false;
-let hintAt = 8; // first hint fades in at t=8s
+let hintAt = 5; // first hint fades in at t=5s
+let shownHint = null;
 
 function showHint(h, time) {
   h.lastAt = time;
+  shownHint = h;
   hintEl.textContent = h.text;
   hintEl.classList.remove('hidden');
   hintVisible = true;
@@ -116,6 +119,14 @@ function showHint(h, time) {
 }
 
 function updateHints(time) {
+  // A visible hint whose condition just stopped applying (e.g. "tap for
+  // sound" after the unlocking tap) retires immediately, not on its timer.
+  if (hintVisible && shownHint && shownHint.need && !shownHint.need()) {
+    hintEl.classList.add('hidden');
+    hintVisible = false;
+    hintAt = time + 3;
+    return;
+  }
   if (time < hintAt) return;
   if (!hintVisible) {
     // Urgent hints first (unless shown within the last 20s).
@@ -186,7 +197,10 @@ function resize() {
   }
 }
 
-window.addEventListener('resize', resize);
+// Coalesce resize storms to one relayout per frame — each resize() now bakes
+// two full backgrounds plus the pixel tables, far too much per drag event.
+let resizePending = false;
+window.addEventListener('resize', () => { resizePending = true; });
 // If the page loads in a hidden/backgrounded tab the viewport can report
 // 0×0 and rAF won't fire; finish booting the moment we become visible.
 // Also hush all audio while the tab is hidden — a background pond should
@@ -341,10 +355,12 @@ function render() {
     swapCtx.imageSmoothingEnabled = true;
     ctx.drawImage(swapCanvas, 0, 0, vw, vh);
     if (p >= 1) {
+      const next = styleSwap.next;
       document.body.classList.toggle('pixel-mode', styleSwap.to === 'pixel');
       game.audio.styleFlourish(styleSwap.to === 'pixel');
       styleSwap = null;
       if (game._reflectStyle) game._reflectStyle();
+      if (next && next !== game.styleMode) game.setStyle(next);
     }
   }
 
@@ -362,6 +378,7 @@ let acc = 0;
 
 function frame(now) {
   requestAnimationFrame(frame);
+  if (resizePending) { resizePending = false; resize(); }
   if (!game.layout) { resize(); return; } // waiting for a real viewport
   let elapsed = (now - last) / 1000;
   last = now;

@@ -400,6 +400,7 @@ export class AudioEngine {
     this.plip(volume * 1.3, 0.7);
     if (this.chip) {
       this.chipBlip('square', [420, 300, 220, 160], 0.035, 0.022 * volume, 0.02);
+      return; // keep the 8-bit soundscape pure — no analog noise tail
     }
     const t = this.ctx.currentTime;
     const n = this.ctx.createBufferSource();

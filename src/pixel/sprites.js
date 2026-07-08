@@ -1,7 +1,7 @@
 // Chunky pixel-art draw routines for every pond inhabitant. All functions
 // draw onto the LOW-RES art canvas: world css coords divide by S and land on
 // integer cells. No anti-aliasing, no gradients — palette colors only.
-import { TAU, clamp } from '../util.js';
+import { TAU, clamp, PALETTE } from '../util.js';
 import { css } from './palette.js';
 
 function px(c, color, x, y, w = 1, h = 1) {
@@ -25,7 +25,9 @@ export function drawPelletsPx(c, food, S, pal) {
   for (const p of food.pellets) {
     if (p.age < 0) continue;
     px(c, pal.pellet[1], p.x / S, p.y / S);
-    if (((p.x + p.y) | 0) % 3 === 0) px(c, pal.pellet[2], p.x / S - 1, p.y / S);
+    // Highlight keyed off the pellet's fixed phase so it doesn't flicker as
+    // the pellet drifts across integer coordinates.
+    if (((p.phase * 100) | 0) % 3 === 0) px(c, pal.pellet[2], p.x / S - 1, p.y / S);
   }
 }
 
@@ -64,17 +66,19 @@ export function drawCupPx(c, food, S, pal, time) {
 
 // --- Fish ------------------------------------------------------------------
 
+// Classify schemes against the same PALETTE constants fish.js builds them
+// from, so recoloring the garden in util.js can't silently break the mapping.
 function fishRamp(f, pal) {
-  if (f.scheme.body === '#f2ede2') return { body: pal.fishWhite[1], deep: pal.fishWhite[0] };
-  if (f.scheme.body === '#d46a25') return { body: pal.fishOrange[0], deep: pal.fishOrange[0] };
+  if (f.scheme.body === PALETTE.goldfishWhite) return { body: pal.fishWhite[1], deep: pal.fishWhite[0] };
+  if (f.scheme.body === PALETTE.goldfishDeep) return { body: pal.fishOrange[0], deep: pal.fishOrange[0] };
   return { body: pal.fishOrange[1], deep: pal.fishOrange[0] };
 }
 
 function patchColor(f, pal) {
   if (!f.scheme.patch) return null;
-  if (f.scheme.patch === '#d9482f') return pal.fishPatch;
-  if (f.scheme.patch === '#f2ede2') return pal.fishWhite[1];
-  return pal.fishOrange[1];
+  if (f.scheme.patch === PALETTE.goldfishWhite) return pal.fishWhite[1];
+  if (f.scheme.patch === PALETTE.goldfishOrange) return pal.fishOrange[1];
+  return pal.fishPatch;
 }
 
 // A koi from above: dark-rimmed tapering body flowing into a long whip of a
@@ -256,7 +260,7 @@ export function drawDogPx(c, dog, S, pal, time) {
   const u = dog.scale / S;
   const dir = dog.dir;
   const x = dog.x / S;
-  const gy = (dog.layout.dogPathY + dog.yOff + dog.bob) / S;
+  const gy = (dog.layout.dogPathY + dog.yOff + dog.bob - dog.jump) / S;
   const lie = dog.lie;
   const COAT = pal.dog[1], DEEP = pal.dog[0], CREAM = pal.dog[2], INK = pal.dogInk;
 
@@ -317,7 +321,8 @@ export function drawDogPx(c, dog, S, pal, time) {
   } else {
     add(det, INK, hcx + dir * 3 * u, hy + 4 * u, 2 * u, 2 * u);
   }
-  if (dog.mouthOpen > 0.3 || dog.tongueT > 0) {
+  // tongueT is a timestamp anchor (never reset) — gate on mouth/state instead.
+  if (dog.mouthOpen > 0.3 || dog.state === 'drink') {
     add(det, pal.lotus[0], hcx + dir * 9 * u, hy + 10 * u, 2.5 * u, 3.5 * u);
   }
 

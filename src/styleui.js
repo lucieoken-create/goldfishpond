@@ -65,7 +65,10 @@ function drawPaintedThumb(cv) {
   g.addColorStop(0, '#3f6774');
   g.addColorStop(1, '#26485a');
   c.beginPath();
-  c.roundRect(w * 0.12, h * 0.18, w * 0.76, h * 0.66, 7);
+  // roundRect is Safari 16.4+ — fall back to a plain rect rather than
+  // letting a thumbnail crash the whole boot on older browsers.
+  if (c.roundRect) c.roundRect(w * 0.12, h * 0.18, w * 0.76, h * 0.66, 7);
+  else c.rect(w * 0.12, h * 0.18, w * 0.76, h * 0.66);
   c.fillStyle = g;
   c.fill();
   c.strokeStyle = '#8d8d8b';

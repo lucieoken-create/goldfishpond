@@ -2,7 +2,7 @@
 // (1 art px ≈ 4-5 css px) and upscales with nearest-neighbor. Gradients are
 // Bayer-dithered bands; water shimmer is genuine palette cycling — every
 // water pixel has a fixed phase into the ramp and the ramp offset rotates.
-import { clamp } from '../util.js';
+import { clamp, roundedRectPath } from '../util.js';
 import { paletteAt, bayer, css } from './palette.js';
 import {
   drawPelletsPx, drawFishPx, drawPadsPx, drawFlyersPx,
@@ -224,8 +224,9 @@ export class PixelRenderer {
     // Entities, in the same layer order as the painterly renderer. Sprites
     // clip themselves to the pond where needed via the save/clip below.
     c.save();
-    c.beginPath();
-    c.rect(this.pond.x, this.pond.y, this.pond.w, this.pond.h);
+    // Clip to the rounded pond like the painterly renderer, so fish and
+    // pellets never draw over the stone corners.
+    roundedRectPath(c, this.pond.x, this.pond.y, this.pond.w, this.pond.h, this.pondR);
     c.clip();
     drawPelletsPx(c, game.food, S, pal);
     for (const f of game.fishes) drawFishPx(c, f, S, pal);
