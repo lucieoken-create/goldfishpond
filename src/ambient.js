@@ -153,7 +153,8 @@ export class Ambient {
       this.leafTimer = rand(20, 60);
       this.leaves.push({
         x: pond.x + rand(0.1, 0.9) * pond.w,
-        y: this.layout.pond.y - rand(60, 140),
+        // Spawn below the hedge so blossoms don't sit as odd circles in it.
+        y: this.layout.pond.y - rand(10, 50),
         vy: rand(18, 26),
         swayA: rand(0, TAU),
         swayR: rand(14, 26),
@@ -506,7 +507,8 @@ export class Ambient {
       ctx.save();
       ctx.translate(leaf.x, leaf.y);
       const fade = leaf.floating && leaf.floatAge > 17 ? (20 - leaf.floatAge) / 3 : 1;
-      ctx.globalAlpha = clamp(fade, 0, 1);
+      const appear = clamp(leaf.age * 1.5, 0, 1); // fade in as it clears the trees
+      ctx.globalAlpha = clamp(fade, 0, 1) * appear;
       ctx.fillStyle = leaf.tone;
       for (let i = 0; i < 5; i++) {
         const a = leaf.rot + (i / 5) * TAU;

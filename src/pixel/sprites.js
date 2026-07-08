@@ -196,6 +196,7 @@ function drawFrogPx(c, f, S, pal, time) {
 export function drawFlyersPx(c, ambient, S, pal, time) {
   // Blossoms: a plus of pink petals with a gold heart.
   for (const leaf of ambient.leaves) {
+    if (leaf.age < 0.3) continue; // pops in once clear of the trees
     const bx = leaf.x / S, by = leaf.y / S;
     const tone = leaf.tone === '#f0bccb' || leaf.tone === '#f2c7d4' ? pal.blossom[1] : pal.blossom[0];
     px(c, tone, bx - 1, by, 3, 1);
@@ -275,11 +276,18 @@ export function drawDogPx(c, dog, S, pal, time) {
     add(sil, COAT, x + dir * bodyW * 0.42, gy - 3 * u, 8 * u, 3 * u);
   }
 
-  // Tail: three segments stepping up and back, tip wagging.
+  // Tail: four centered segments arcing up and back, tip wagging. Centered
+  // on their anchors so the rump mirrors cleanly facing either way.
   const wag = Math.sin(time * (3 + dog.tailWag * 14)) * 1.6 * u;
-  add(sil, COAT, x - dir * (bodyW / 2 + 2 * u), bodyTop + 2 * u, 5 * u, 3 * u);
-  add(sil, COAT, x - dir * (bodyW / 2 + 6 * u), bodyTop - u + wag, 5 * u, 3 * u);
-  add(sil, DEEP, x - dir * (bodyW / 2 + 9 * u), bodyTop - 4 * u + wag * 1.6, 4 * u, 3 * u);
+  const tailSegs = [
+    [COAT, 2, 2 * u, 5 * u, 3 * u, 0],
+    [COAT, 6.5, -1.5 * u, 5 * u, 3 * u, 1],
+    [DEEP, 10.5, -4.5 * u, 4 * u, 2.5 * u, 1.4],
+    [DEEP, 14, -7.5 * u, 3.5 * u, 2.5 * u, 1.8],
+  ];
+  for (const [col, dist, yo, w, h, wagMul] of tailSegs) {
+    add(sil, col, x - dir * (bodyW / 2 + dist * u) - w / 2, bodyTop + yo + wag * wagMul, w, h);
+  }
 
   // Long low body: dark saddle on top, cream chest under.
   add(sil, COAT, x - bodyW / 2, bodyTop, bodyW, bodyH);

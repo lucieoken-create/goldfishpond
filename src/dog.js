@@ -276,7 +276,11 @@ export class Dog {
     this.headPitch = lerp(this.headPitch, this.headPitchT, ease);
     this.faceBlend = lerp(this.faceBlend, this.faceBlendT, clamp(dt * 6, 0, 1));
     this.headRoll = lerp(this.headRoll, this.headRollT, clamp(dt * 7, 0, 1));
+    const prevYOff = this.yOff;
     this.yOff = lerp(this.yOff, this.yOffT, clamp(dt * 3.5, 0, 1));
+    // Little steps while she shuffles up to the pond edge (and back) —
+    // otherwise the vertical ease reads as sliding, especially in pixel mode.
+    this.walkPhase += Math.abs(this.yOff - prevYOff) / (10 * s);
     this.tailWag = lerp(this.tailWag, this.tailWagT, ease);
     this.mouthOpen = lerp(this.mouthOpen, this.mouthOpenT, clamp(dt * 6, 0, 1));
 
@@ -409,8 +413,8 @@ export class Dog {
     ctx.fillStyle = COAT_DEEP;
     ctx.beginPath();
     ctx.moveTo(0, 2 * s);
-    ctx.quadraticCurveTo(-9 * s, -4 * s, -17 * s, -15 * s);   // top edge to tip
-    ctx.quadraticCurveTo(-14 * s, -6 * s, -10.5 * s, -1 * s); // scalloped underside
+    ctx.quadraticCurveTo(-12 * s, -5.5 * s, -22 * s, -20 * s);  // top edge to tip
+    ctx.quadraticCurveTo(-18 * s, -8 * s, -13.5 * s, -1.5 * s); // scalloped underside
     ctx.quadraticCurveTo(-9 * s, 3 * s, -6 * s, 4.5 * s);
     ctx.quadraticCurveTo(-4 * s, 6 * s, -1 * s, 5 * s);
     ctx.closePath();
@@ -421,7 +425,7 @@ export class Dog {
     ctx.lineWidth = 2.2 * s;
     ctx.beginPath();
     ctx.moveTo(-1 * s, 1 * s);
-    ctx.quadraticCurveTo(-9 * s, -5 * s, -15.5 * s, -13 * s);
+    ctx.quadraticCurveTo(-11 * s, -6.5 * s, -20 * s, -17.5 * s);
     ctx.stroke();
     ctx.restore();
 
