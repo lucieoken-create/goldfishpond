@@ -13,6 +13,13 @@
       low-res canvas upscaled with `imageSmoothingEnabled = false`, chunky
       sprites, limited palette — biggest-ticket item, design before building.
 
+## Small
+- [ ] **Dog walks under the cup** — when she passes the food cup, the cup
+      renders on top of her. Draw order in `src/main.js` `render()`: the cup
+      (step 6, UI) comes after the dog (step 5). Fix: draw the resting cup
+      before the dog so she passes in front of it; keep it topmost only while
+      it's being dragged/armed.
+
 ## Pending
 - [ ] Real-device check (iOS Safari audio unlock, touch feel, performance).
 - [ ] Listen pass on the new audio mix (quieter water, birds) — tuned by ear
