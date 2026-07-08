@@ -25,63 +25,43 @@ html, body {
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-#soundToggle {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 252, 245, 0.65);
-  box-shadow: 0 2px 8px rgba(60, 50, 30, 0.25);
-  font-size: 20px;
-  cursor: pointer;
-  z-index: 10;
-  transition: transform 160ms var(--ease-out-strong), background 0.2s ease;
-}
-
+/* Sound and night live in the left inventory dock as smaller flaps. */
+#soundToggle,
 #nightToggle {
-  position: fixed;
-  top: 68px;
-  right: 14px;
-  width: 44px;
+  display: block;
+  width: 36px;
   height: 44px;
   border: none;
-  border-radius: 50%;
+  border-radius: 0 12px 12px 0;
   background: rgba(255, 252, 245, 0.65);
   box-shadow: 0 2px 8px rgba(60, 50, 30, 0.25);
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
-  z-index: 10;
   transition: transform 160ms var(--ease-out-strong), background 0.2s ease;
 }
 
 /* Press feedback: the interface heard you. Hover only where hover exists. */
 #soundToggle:active,
 #nightToggle:active {
-  transform: scale(0.94);
+  transform: translateX(1px) scale(0.96);
 }
 
 @media (hover: hover) and (pointer: fine) {
   #soundToggle:hover,
   #nightToggle:hover {
-    transform: scale(1.08);
+    transform: translateX(3px);
     background: rgba(255, 252, 245, 0.85);
-  }
-
-  #soundToggle:active,
-  #nightToggle:active {
-    transform: scale(0.98);
   }
 }
 
 #soundHint {
   position: fixed;
-  top: 22px;
-  right: 68px;
+  top: 50%;
+  left: 48px;
+  transform: translateY(-50%);
   padding: 6px 12px;
   border-radius: 14px;
+  text-align: center;
   background: rgba(255, 252, 245, 0.8);
   color: #5a4f3a;
   font-family: Georgia, 'Times New Roman', serif;
@@ -104,6 +84,7 @@ html, body {
   transform: translateX(-50%);
   padding: 7px 16px;
   border-radius: 16px;
+  text-align: center;
   background: rgba(255, 252, 245, 0.8);
   color: #5a4f3a;
   font-family: Georgia, 'Times New Roman', serif;
@@ -127,6 +108,10 @@ html, body {
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 #styleTab {
@@ -271,7 +256,7 @@ body.pixel-mode .styleCard canvas {
 
 body.pixel-mode #soundToggle,
 body.pixel-mode #nightToggle {
-  border-radius: 8px;
+  border-radius: 0 6px 6px 0;
 }
 
 /* Reduced motion: keep the fades (they aid comprehension), drop the movement. */

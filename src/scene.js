@@ -100,6 +100,11 @@ function drawFoliageBorder(ctx, layout) {
   drawBlobCluster(ctx, vw * 0.04, hedgeH * 0.55, vw * 0.11, PALETTE.foliage, 30);
   drawBlobCluster(ctx, vw * 0.96, hedgeH * 0.6, vw * 0.12, PALETTE.foliage, 30);
 
+  // Extra mid-hedge growth so the border reads full, not sparse.
+  drawBlobCluster(ctx, vw * rand(0.22, 0.3), hedgeH * 0.45, vw * 0.1, PALETTE.foliage, 24);
+  drawBlobCluster(ctx, vw * rand(0.5, 0.57), hedgeH * 0.55, vw * 0.08, PALETTE.plum, 18);
+  drawBlobCluster(ctx, vw * rand(0.8, 0.86), hedgeH * 0.4, vw * 0.09, PALETTE.foliage, 22);
+
   // Soft shadow the hedge casts on the gravel.
   const sh = ctx.createLinearGradient(0, hedgeH * 0.8, 0, hedgeH * 1.5);
   sh.addColorStop(0, 'rgba(47, 66, 41, 0.18)');
@@ -111,6 +116,7 @@ function drawFoliageBorder(ctx, layout) {
   const hedgeBlooms = [
     { x: vw * rand(0.12, 0.2), c: ['#e8a7b8', '#f0bccb'] },          // pink
     { x: vw * rand(0.38, 0.48), c: ['#f2ede2', '#faf6ee'] },         // white
+    { x: vw * rand(0.6, 0.68), c: ['#e8a7b8', '#f2c7d4'] },          // pink
     { x: vw * rand(0.85, 0.92), c: ['#c9a7d8', '#b98fd0'] },         // lavender
   ];
   for (const b of hedgeBlooms) {
@@ -163,7 +169,7 @@ function drawFoliageBand(ctx, x, y, w, h, tones, darkTone) {
   }
 
   // Leaf clumps over the base — structured rosettes, denser near the top.
-  const count = Math.round(w / 46);
+  const count = Math.round(w / 32);
   for (let i = 0; i < count; i++) {
     const bx = x + (i / count) * w + rand(-14, 14);
     const by = y + rand(h * 0.05, h * 0.7);

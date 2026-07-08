@@ -6,7 +6,7 @@ export class Ambient {
     this.dragonfly = null;
     this.dragonflyTimer = rand(8, 25);
     this.leaves = [];
-    this.leafTimer = rand(6, 20);
+    this.leafTimer = rand(2, 6);
     this.generate(layout);
   }
 
@@ -193,10 +193,11 @@ export class Ambient {
     }
     if (this.dragonfly) this.updateDragonfly(dt);
 
-    // Falling blossoms drift down from the flowering trees.
+    // Falling blossoms drift down from the flowering trees — steadily enough
+    // that four or five are usually adrift or floating on the water.
     this.leafTimer -= dt;
     if (this.leafTimer <= 0) {
-      this.leafTimer = rand(20, 60);
+      this.leafTimer = rand(4, 9);
       this.leaves.push({
         x: pond.x + rand(0.1, 0.9) * pond.w,
         // Spawn below the hedge so blossoms don't sit as odd circles in it.

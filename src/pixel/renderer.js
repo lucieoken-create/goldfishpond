@@ -3,7 +3,7 @@
 // Bayer-dithered bands; water shimmer is genuine palette cycling — every
 // water pixel has a fixed phase into the ramp and the ramp offset rotates.
 import { clamp } from '../util.js';
-import { paletteAt, bayer } from './palette.js';
+import { paletteAt, bayer, css } from './palette.js';
 import {
   drawPelletsPx, drawFishPx, drawPadsPx, drawFlyersPx,
   drawCupPx, drawDogPx, drawFirefliesPx,
@@ -123,7 +123,7 @@ export class PixelRenderer {
           if (Math.abs(x - px1) < w * 0.05 || Math.abs(x - px2) < w * 0.04) {
             c = pal.plum[b > 0.5 ? 1 : 0];
           }
-          if (hs > 0.975) c = pal.blossom[hs > 0.99 ? 1 : 0];
+          if (hs > 0.988) c = pal.blossom[0]; // sparse buds; real flowers stamp below
         }
 
         // Bottom corner bushes.
@@ -151,6 +151,36 @@ export class PixelRenderer {
       }
     }
     ctx.putImageData(img, 0, 0);
+
+    // Proper little flowers over the hedge and corner bushes — a petal plus
+    // with a gold heart, the same language as the lotus and falling blossoms.
+    const flower = (fx, fy, tone) => {
+      ctx.fillStyle = css(tone);
+      ctx.fillRect(fx - 1, fy, 3, 1);
+      ctx.fillRect(fx, fy - 1, 1, 3);
+      ctx.fillStyle = css(pal.lotus[2]);
+      ctx.fillRect(fx, fy, 1, 1);
+    };
+    const tones = [pal.blossom[0], pal.blossom[1], pal.fishWhite[1]];
+    const nF = Math.max(6, Math.round(w / 22));
+    for (let i = 0; i < nF; i++) {
+      const fx = Math.round((i + 0.5) * (w / nF) + (hash2(i, 11) - 0.5) * 8);
+      const fy = 2 + Math.round(hash2(i, 23) * (hedgeH - 5));
+      flower(fx, fy, tones[Math.floor(hash2(i, 31) * 3)]);
+    }
+    const bushR = h * 0.12;
+    for (let i = 0; i < 3; i++) {
+      flower(
+        2 + Math.round(hash2(i, 41) * bushR * 0.8),
+        h - 3 - Math.round(hash2(i, 43) * bushR * 0.7),
+        tones[i % 3]
+      );
+      flower(
+        w - 3 - Math.round(hash2(i, 47) * bushR * 0.8),
+        h - 3 - Math.round(hash2(i, 53) * bushR * 0.7),
+        tones[(i + 1) % 3]
+      );
+    }
   }
 
   // Per-frame water: depth base + ripple field + rotating sparkle phase +

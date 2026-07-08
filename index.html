@@ -15,25 +15,25 @@
 </head>
 <body>
   <canvas id="pond" role="img" aria-label="A tranquil garden goldfish pond. Tap the water to poke it, tap the cup to feed the fish."></canvas>
-  <button id="soundToggle" aria-label="Toggle sound" title="Toggle sound">
-    <span id="soundIcon">🔇</span>
-  </button>
-  <button id="nightToggle" aria-label="Toggle day and night" title="Toggle day and night">
-    <span id="nightIcon">🌙</span>
-  </button>
   <div id="soundHint">tap anywhere for sound</div>
   <div id="actionHint" class="hidden"></div>
   <div id="styleDock">
     <button id="styleTab" aria-label="Change art style" aria-expanded="false" title="Art style">🎨</button>
+    <button id="soundToggle" aria-label="Toggle sound" title="Toggle sound">
+      <span id="soundIcon">🔇</span>
+    </button>
+    <button id="nightToggle" aria-label="Toggle day and night" title="Toggle day and night">
+      <span id="nightIcon">🌙</span>
+    </button>
     <div id="stylePanel">
       <div class="panelTitle">art style</div>
       <button class="styleCard" data-style="painted">
         <canvas width="64" height="44" aria-hidden="true"></canvas>
-        <span>painted</span>
+        <span>watercolor</span>
       </button>
       <button class="styleCard" data-style="pixel">
         <canvas width="32" height="22" aria-hidden="true"></canvas>
-        <span>8-bit</span>
+        <span>pixel</span>
       </button>
     </div>
   </div>
