@@ -159,7 +159,7 @@ export class PixelRenderer {
     const ramp = pal.water;
     const { w: pw, h: ph } = this.pond;
     const data = this.waterImg.data;
-    const cycle = Math.floor(time * 7) & 7;
+    const cycle = Math.floor(time * 3) & 7;
     const { gw, gh, cur } = water;
     const night = nightT > 0.005;
     for (let y = 0; y < ph; y++) {

@@ -77,8 +77,9 @@ function patchColor(f, pal) {
   return pal.fishOrange[1];
 }
 
-// A fish that reads as a fish: dark-rimmed tapering body, forked tail fin
-// that follows the sway, and two eye dots on the head.
+// A koi from above: dark-rimmed tapering body flowing into a long whip of a
+// tail (no forked fin — the tail IS the taper), little pectoral fins by the
+// head, and two dark eye dots.
 export function drawFishPx(c, f, S, pal) {
   const cosH = Math.cos(f.heading), sinH = Math.sin(f.heading);
   const ramp = fishRamp(f, pal);
@@ -89,22 +90,28 @@ export function drawFishPx(c, f, S, pal) {
     x: (f.x - cosH * d * size - sinH * s * size) / S,
     y: (f.y - sinH * d * size + cosH * s * size) / S,
   });
-  const sway = (i) => Math.sin(f.swayPhase - i * 0.9) * 0.13 * (0.25 + i / 4);
+  // Sway grows toward the tail so the whip curls like the reference koi.
+  const sway = (i) => Math.sin(f.swayPhase - i * 0.9) * 0.13 * (0.25 + i / 3.2);
 
   const segs = [
-    { p: pos(0, sway(0)), r: (0.4 * size) / S, color: ramp.body },
-    { p: pos(0.38, sway(1)), r: (0.45 * size) / S, color: ramp.body },
-    { p: pos(0.74, sway(2)), r: (0.3 * size) / S, color: ramp.body },
-    { p: pos(1.02, sway(3)), r: (0.16 * size) / S, color: ramp.deep },
-  ];
-  const finSway = sway(4);
-  const fins = [pos(1.32, finSway + 0.3), pos(1.32, finSway - 0.3)];
-  const finR = Math.max(0.8, (0.17 * size) / S);
+    { d: 0, r: 0.4, color: ramp.body },
+    { d: 0.38, r: 0.45, color: ramp.body },
+    { d: 0.74, r: 0.3, color: ramp.body },
+    { d: 1.05, r: 0.19, color: ramp.body },
+    { d: 1.34, r: 0.13, color: ramp.deep },
+    { d: 1.6, r: 0.09, color: ramp.deep },
+  ].map((s, i) => ({ p: pos(s.d, sway(i)), r: Math.max(0.7, (s.r * size) / S), color: s.color }));
 
-  // Ink rim pass, then color pass.
+  // Pectoral fins angled out beside the front of the body.
+  const finR = Math.max(0.7, (0.14 * size) / S);
+  const finL = pos(0.32, 0.58), finR_ = pos(0.32, -0.58);
+
+  // Ink rim pass, then color pass, back to front.
   for (const s of segs) disc(c, pal.fishShadow, s.p.x, s.p.y, s.r + 1);
-  for (const fp of fins) disc(c, pal.fishShadow, fp.x, fp.y, finR + 1);
-  for (const fp of fins) disc(c, ramp.deep, fp.x, fp.y, finR);
+  disc(c, pal.fishShadow, finL.x, finL.y, finR + 0.8);
+  disc(c, pal.fishShadow, finR_.x, finR_.y, finR + 0.8);
+  disc(c, ramp.deep, finL.x, finL.y, finR);
+  disc(c, ramp.deep, finR_.x, finR_.y, finR);
   for (let i = segs.length - 1; i >= 0; i--) disc(c, segs[i].color, segs[i].p.x, segs[i].p.y, segs[i].r);
   if (patch) disc(c, patch, segs[1].p.x, segs[1].p.y - 1, Math.max(1, segs[1].r * 0.55));
 
@@ -144,24 +151,45 @@ export function drawPadsPx(c, ambient, S, pal, time) {
   drawFrogPx(c, ambient.frog, S, pal, time);
 }
 
+// Reference-style frog: ink outline, folded haunches, lit back, and the two
+// big white googly eyes with dark pupils that make a pixel frog a frog.
 function drawFrogPx(c, f, S, pal, time) {
   if (!f) return;
-  const s = f.size / S;
   const hop = f.hopT >= 0 ? Math.sin(Math.min(1, f.hopT) * Math.PI) : 0;
   const x = f.x / S, y = f.y / S;
-  const r = Math.max(2, s * (1 + hop * 0.35));
+  const r = Math.max(2.5, (f.size / S) * (1 + hop * 0.35));
   const ca = Math.cos(f.angle), sa = Math.sin(f.angle);
-  // Legs, body, stripe, eyes.
-  px(c, pal.frog[0], x - ca * r, y - sa * r + r * 0.5, 2, 1);
-  px(c, pal.frog[0], x - ca * r, y - sa * r - r * 0.5, 2, 1);
-  disc(c, pal.frog[2], x, y, r);
-  disc(c, pal.frog[1], x - ca * r * 0.4, y - sa * r * 0.4, Math.max(1, r * 0.5));
-  if (f.throatT > 0) px(c, pal.frogThroat, x + ca * r * 0.8 - 1, y + sa * r * 0.8 - 1, 2, 2);
-  const ex = x + ca * r * 0.7, ey = y + sa * r * 0.7;
   const pxp = -sa, pyp = ca;
-  if (f.blinkT <= 0) {
-    px(c, pal.ink, ex + pxp * r * 0.5, ey + pyp * r * 0.5);
-    px(c, pal.ink, ex - pxp * r * 0.5, ey - pyp * r * 0.5);
+
+  // Ink silhouette under everything (body + haunches).
+  const hxL = x - ca * r * 0.5 + pxp * r * 0.6, hyL = y - sa * r * 0.5 + pyp * r * 0.6;
+  const hxR = x - ca * r * 0.5 - pxp * r * 0.6, hyR = y - sa * r * 0.5 - pyp * r * 0.6;
+  disc(c, pal.ink, x, y, r + 1);
+  disc(c, pal.ink, hxL, hyL, r * 0.5 + 1);
+  disc(c, pal.ink, hxR, hyR, r * 0.5 + 1);
+
+  // Haunches, body, lit back.
+  disc(c, pal.frog[0], hxL, hyL, r * 0.5);
+  disc(c, pal.frog[0], hxR, hyR, r * 0.5);
+  disc(c, pal.frog[1], x, y, r);
+  disc(c, pal.frog[2], x + ca * r * 0.2, y + sa * r * 0.2, r * 0.6);
+
+  // Cream throat — puffs up while croaking.
+  const puff = f.throatT > 0 ? 0.5 + Math.sin((0.5 - f.throatT) / 0.5 * Math.PI) * 0.35 : 0.3;
+  disc(c, pal.frogThroat, x + ca * r * 0.65, y + sa * r * 0.65, Math.max(0.8, r * puff));
+
+  // Googly eyes on top of the head.
+  const eyeR = Math.max(1.2, r * 0.42);
+  for (const side of [1, -1]) {
+    const ex = x + ca * r * 0.55 + side * pxp * r * 0.62;
+    const ey = y + sa * r * 0.55 + side * pyp * r * 0.62;
+    disc(c, pal.ink, ex, ey, eyeR + 0.8);
+    if (f.blinkT <= 0) {
+      disc(c, pal.fishWhite[1], ex, ey, eyeR);
+      px(c, pal.ink, ex + ca * eyeR * 0.5, ey + sa * eyeR * 0.5);
+    } else {
+      disc(c, pal.frog[1], ex, ey, eyeR);
+    }
   }
 }
 
@@ -224,7 +252,7 @@ export function drawDogPx(c, dog, S, pal, time) {
   const COAT = pal.dog[1], DEEP = pal.dog[0], CREAM = pal.dog[2], INK = pal.dogInk;
 
   const legH = Math.max(2, 9 * u * (1 - lie * 0.85));
-  const bodyW = 78 * u;
+  const bodyW = 62 * u;
   const bodyH = 17 * u * (1 - lie * 0.15);
   const bodyBot = gy - legH;
   const bodyTop = bodyBot - bodyH;
