@@ -250,6 +250,27 @@ export function drawFirefliesPx(c, ambient, S, pal, time, nightT) {
   }
 }
 
+// The bone on the coping: classic pixel bone, ink-outlined.
+export function drawBonePx(c, layout, S, pal) {
+  const b = layout.bone;
+  const x = Math.round(b.x / S), y = Math.round(b.y / S);
+  const L = Math.max(6, Math.round((b.r * 2) / S));
+  const half = L >> 1;
+  const rects = [
+    [x - half + 1, y - 1, L - 2, 2],   // shaft
+    [x - half - 1, y - 3, 2, 3],       // knobs
+    [x - half - 1, y, 2, 3],
+    [x + half - 1, y - 3, 2, 3],
+    [x + half - 1, y, 2, 3],
+  ];
+  c.fillStyle = css(pal.ink);
+  for (const [rx, ry, rw, rh] of rects) c.fillRect(rx - 1, ry - 1, rw + 2, rh + 2);
+  c.fillStyle = css(pal.fishWhite[1]);
+  for (const [rx, ry, rw, rh] of rects) c.fillRect(rx, ry, rw, rh);
+  c.fillStyle = css(pal.fishWhite[0]);
+  c.fillRect(x - half + 1, y, L - 2, 1);
+}
+
 // --- The doxie --------------------------------------------------------------
 
 // Proper sprite-work dachshund: long low body, short sturdy legs with cream

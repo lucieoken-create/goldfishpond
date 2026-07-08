@@ -37,7 +37,14 @@ export function computeLayout(vw, vh) {
     r: Math.max(17, Math.min(vw, vh) * 0.031),
   };
 
-  return { vw, vh, portrait, pond, pondRadius, coping, copingW, dogPathY, dogScale, cup };
+  // The pup's bone on the bottom-left coping — tap it to whistle her over.
+  const bone = {
+    x: pond.x + pondRadius * 1.6,
+    y: pond.y + pond.h + copingW * 0.5,
+    r: Math.max(13, Math.min(vw, vh) * 0.024),
+  };
+
+  return { vw, vh, portrait, pond, pondRadius, coping, copingW, dogPathY, dogScale, cup, bone };
 }
 
 // Render the full static background into an offscreen canvas. Called on resize only.

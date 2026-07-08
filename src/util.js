@@ -80,4 +80,6 @@ export const PALETTE = {
   doxieRed: '#b5713a',
   doxieDeep: '#96562a',
   doxieCream: '#d9a86c',
+  bone: '#ece4d0',
+  boneShade: '#cfc5ab',
 };

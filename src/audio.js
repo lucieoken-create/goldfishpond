@@ -477,6 +477,31 @@ export class AudioEngine {
     this.plip(0.35, 1.4);
   }
 
+  // A little "wheet-wheeo!" to call the pup over.
+  whistle() {
+    if (!this.ready()) return;
+    if (this.chip) {
+      this.chipBlip('square', [988, 1319], 0.06, 0.02);
+      this.chipBlip('square', [1319, 988, 740], 0.05, 0.018, 0.16);
+      return;
+    }
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.frequency.setValueAtTime(900, t);
+    o.frequency.exponentialRampToValueAtTime(1500, t + 0.12);
+    o.frequency.setValueAtTime(1500, t + 0.16);
+    o.frequency.exponentialRampToValueAtTime(750, t + 0.34);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.035, t + 0.03);
+    g.gain.setValueAtTime(0.035, t + 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    o.connect(g);
+    g.connect(this.master);
+    o.start(t);
+    o.stop(t + 0.45);
+  }
+
   // Frog croak: low buzzy sweep with a fast amplitude wobble.
   croak() {
     if (!this.ready()) return;

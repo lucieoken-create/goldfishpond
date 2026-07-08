@@ -6,7 +6,7 @@ import { clamp, roundedRectPath } from '../util.js';
 import { paletteAt, bayer, css } from './palette.js';
 import {
   drawPelletsPx, drawFishPx, drawPadsPx, drawFlyersPx,
-  drawCupPx, drawDogPx, drawFirefliesPx,
+  drawCupPx, drawDogPx, drawFirefliesPx, drawBonePx,
 } from './sprites.js';
 
 // Deterministic per-cell noise (stable across frames — speckles must not crawl).
@@ -235,6 +235,7 @@ export class PixelRenderer {
     drawPadsPx(c, game.ambient, S, pal, t);
     drawFlyersPx(c, game.ambient, S, pal, t);
 
+    drawBonePx(c, game.layout, S, pal);
     const cupLifted = game.food.dragging || game.food.armed || game.food.returnT < 1;
     if (!cupLifted) drawCupPx(c, game.food, S, pal, t);
     drawDogPx(c, game.dog, S, pal, t);

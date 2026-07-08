@@ -98,6 +98,7 @@ const HINTS = [
   { text: 'poke the water' },
   { text: 'the little cup by the pond holds fish food' },
   { text: 'the pup loves a little pat', need: () => game.dog.state !== 'offscreen' && !game.dog.asleep },
+  { text: 'the bone by the pond might tempt somebody', need: () => game.dog.state === 'offscreen' },
   { text: 'does the frog have anything to say?', need: () => !!game.ambient.frog },
   { text: 'shh… listen to the garden', need: () => game.audio.unlocked && game.audio.enabled },
   { text: 'a little tab on the left hides another world' },
@@ -292,8 +293,10 @@ function drawPainted(ctx) {
   game.ambient.drawPads(ctx, t);
   game.ambient.drawFlyers(ctx, t);
 
-  // 5. The doxie and the cup. The resting cup sits behind her (she walks in
-  //    front of it); it pops to the top layer only while lifted or in flight.
+  // 5. The doxie, her bone, and the cup. The resting cup sits behind her
+  //    (she walks in front of it); it pops to the top layer only while
+  //    lifted or in flight.
+  game.dog.drawBone(ctx);
   const cupLifted = game.food.dragging || game.food.armed || game.food.returnT < 1;
   if (!cupLifted) game.food.drawCup(ctx, t);
   game.dog.draw(ctx, t);

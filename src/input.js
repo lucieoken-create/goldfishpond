@@ -55,6 +55,9 @@ export function setupInput(canvas, game) {
       } else {
         game.poke(x, y);
       }
+    } else if (game.dog.boneAt(x, y)) {
+      // The bone on the coping whistles her over.
+      game.dog.summon(game.audio);
     } else {
       // Tap on land disarms feeding.
       game.food.armed = false;

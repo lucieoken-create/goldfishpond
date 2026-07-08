@@ -310,6 +310,49 @@ export class Dog {
     }
   }
 
+  // The bone on the coping: tap it to whistle her over.
+  boneAt(x, y) {
+    const b = this.layout.bone;
+    return Math.hypot(x - b.x, y - b.y) < b.r * 1.9;
+  }
+
+  summon(audio) {
+    audio.whistle();
+    if (this.state === OFFSCREEN) {
+      this.timer = Math.min(this.timer, 0.4);
+    } else {
+      // Already here — a delighted wiggle and a heart.
+      this.tailWagT = Math.max(this.tailWagT, 3.2);
+      this.hearts.push({ x: this.x, y: this.layout.dogPathY + this.yOff - 66 * this.scale, age: 0 });
+    }
+  }
+
+  // The bone itself, resting on the bottom-left coping.
+  drawBone(ctx) {
+    const b = this.layout.bone;
+    const r = b.r;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(-0.35);
+    ctx.fillStyle = 'rgba(60, 50, 30, 0.25)';
+    ctx.beginPath();
+    ctx.ellipse(1, r * 0.5, r * 1.3, r * 0.38, 0, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = PALETTE.bone;
+    ctx.fillRect(-r * 0.85, -r * 0.2, r * 1.7, r * 0.4);
+    for (const ex of [-0.9, 0.9]) {
+      for (const ey of [-0.26, 0.26]) {
+        ctx.beginPath();
+        ctx.arc(ex * r, ey * r, r * 0.32, 0, TAU);
+        ctx.fill();
+      }
+    }
+    // Soft underside shading so it sits, not floats.
+    ctx.fillStyle = PALETTE.boneShade;
+    ctx.fillRect(-r * 0.85, r * 0.05, r * 1.7, r * 0.15);
+    ctx.restore();
+  }
+
   // Rough hit box for petting.
   hitTest(x, y) {
     if (this.state === OFFSCREEN) return false;
