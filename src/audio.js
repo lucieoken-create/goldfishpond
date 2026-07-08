@@ -6,7 +6,9 @@ export class AudioEngine {
   constructor() {
     this.ctx = null;
     this.master = null;
-    this.enabled = localStorage.getItem('pondSound') !== 'off';
+    let stored = null;
+    try { stored = localStorage.getItem('pondSound'); } catch (e) { /* storage blocked — default on */ }
+    this.enabled = stored !== 'off';
     this.unlocked = false;
     this.rustleTimer = 0;
     this.birdTimer = rand(4, 9);
@@ -115,7 +117,7 @@ export class AudioEngine {
 
   toggle() {
     this.enabled = !this.enabled;
-    localStorage.setItem('pondSound', this.enabled ? 'on' : 'off');
+    try { localStorage.setItem('pondSound', this.enabled ? 'on' : 'off'); } catch (e) { /* storage blocked */ }
     clearTimeout(this._suspendTimer);
     if (this.ctx) {
       if (this.enabled) {

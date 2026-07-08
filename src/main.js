@@ -83,7 +83,9 @@ function updateHints(time) {
     for (let k = 0; k < HINTS.length; k++) {
       hintIdx = (hintIdx + 1) % HINTS.length;
       const h = HINTS[hintIdx];
-      if (!h.need || h.need()) return showHint(h, time);
+      if ((!h.need || h.need()) && (h.lastAt === undefined || time - h.lastAt > 20)) {
+        return showHint(h, time);
+      }
     }
     hintAt = time + 3; // nothing applicable — try again shortly
   } else {
@@ -105,6 +107,7 @@ function resize() {
   canvas.style.width = vw + 'px';
   canvas.style.height = vh + 'px';
 
+  const prev = game.layout;
   game.layout = computeLayout(vw, vh);
   renderBackground(bgCanvas, game.layout, dpr);
   game.water.resize(game.layout);
@@ -118,6 +121,7 @@ function resize() {
     game.food.resize(game.layout);
     game.dog.resize(game.layout);
     game.ambient.resize(game.layout);
+    for (const f of game.fishes) f.resize(game.layout.pond, prev.pond);
   }
 }
 
@@ -132,6 +136,10 @@ document.addEventListener('visibilitychange', () => {
   else game.audio.unhush();
 });
 window.addEventListener('pagehide', () => game.audio.hush());
+// Back/forward-cache restores don't reliably fire visibilitychange.
+window.addEventListener('pageshow', () => {
+  if (!document.hidden) game.audio.unhush();
+});
 resize();
 setupInput(canvas, game);
 
@@ -140,9 +148,12 @@ const soundBtn = document.getElementById('soundToggle');
 const soundIcon = document.getElementById('soundIcon');
 soundBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  game.audio.unlock();
   game.hideHint();
-  const on = game.audio.toggle();
+  // If this click is the first gesture and sound is already preferred on,
+  // unlock() alone starts the ambience — toggling too would mute it again.
+  const firstGestureStartsSound = !game.audio.unlocked && game.audio.enabled;
+  game.audio.unlock();
+  const on = firstGestureStartsSound ? true : game.audio.toggle();
   soundIcon.textContent = on ? '🔊' : '🔇';
 });
 // Reflect stored preference (context still needs a gesture to start).
@@ -154,6 +165,7 @@ const nightIcon = document.getElementById('nightIcon');
 nightBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   game.audio.unlock();
+  game.hideHint();
   game.night = !game.night;
   nightIcon.textContent = game.night ? '☀️' : '🌙';
 });

@@ -86,15 +86,14 @@ export class Food {
   scatter(x, y, water, audio) {
     const n = Math.round(rand(6, 10));
     const { pond, pondRadius } = this.layout;
+    // Keep pellets on water the fish can actually reach: inset far enough
+    // from the wall for the biggest fish (head clamped size*1.1 away, eat
+    // radius size*0.55) and inside the rounded-corner arcs.
+    const inset = Math.max(12, Math.min(pond.w, pond.h) * 0.06, pondRadius * 0.35);
     for (let i = 0; i < n; i++) {
       if (this.pellets.length >= MAX_PELLETS) break;
-      let px = x + gauss(0, 22);
-      let py = y + gauss(0, 22);
-      // Keep pellets on the water.
-      if (roundedRectSDF(px, py, pond, pondRadius) > -6) {
-        px = clamp(px, pond.x + 10, pond.x + pond.w - 10);
-        py = clamp(py, pond.y + 10, pond.y + pond.h - 10);
-      }
+      const px = clamp(x + gauss(0, 22), pond.x + inset, pond.x + pond.w - inset);
+      const py = clamp(y + gauss(0, 22), pond.y + inset, pond.y + pond.h - inset);
       const delay = i * rand(0.04, 0.1);
       this.pellets.push({
         x: px, y: py,

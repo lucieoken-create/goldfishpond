@@ -16,7 +16,8 @@ const SCHEMES = [
 export class Fish {
   constructor(layout, i) {
     const { pond } = layout;
-    this.size = rand(0.8, 1.25) * Math.min(pond.w, pond.h) / 16;
+    this.sizeFactor = rand(0.8, 1.25);
+    this.size = this.sizeFactor * Math.min(pond.w, pond.h) / 16;
     this.x = rand(pond.x + pond.w * 0.25, pond.x + pond.w * 0.75);
     this.y = rand(pond.y + pond.h * 0.25, pond.y + pond.h * 0.75);
     this.heading = rand(0, TAU);
@@ -32,6 +33,13 @@ export class Fish {
     this.eatCooldown = 0;
     this.gulpTimer = 0;
     this.target = null;                   // pellet being chased
+  }
+
+  // Re-derive size for a new pond and carry position across proportionally.
+  resize(pond, prevPond) {
+    this.size = this.sizeFactor * Math.min(pond.w, pond.h) / 16;
+    this.x = pond.x + (this.x - prevPond.x) / prevPond.w * pond.w;
+    this.y = pond.y + (this.y - prevPond.y) / prevPond.h * pond.h;
   }
 
   update(dt, layout, fishes, pellets, water, audio, time) {

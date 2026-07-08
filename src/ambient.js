@@ -3,14 +3,50 @@ import { PALETTE, TAU, rand, pick, clamp } from './util.js';
 
 export class Ambient {
   constructor(layout) {
-    this.resize(layout);
     this.dragonfly = null;
     this.dragonflyTimer = rand(8, 25);
     this.leaves = [];
     this.leafTimer = rand(6, 20);
+    this.generate(layout);
   }
 
+  // Re-layout WITHOUT regenerating: resize fires on every viewport change
+  // (including iOS URL-bar collapse), so everything must keep its place —
+  // remapped proportionally into the new pond — or the scene teleports.
   resize(layout) {
+    const old = this.layout;
+    this.layout = layout;
+    const op = old.pond, np = layout.pond;
+    const mapX = (x) => np.x + (x - op.x) / op.w * np.w;
+    const mapY = (y) => np.y + (y - op.y) / op.h * np.h;
+    const scaleR = Math.min(np.w, np.h) / Math.min(op.w, op.h);
+
+    for (const p of this.pads) {
+      p.ax = mapX(p.ax); p.ay = mapY(p.ay);
+      p.x = mapX(p.x); p.y = mapY(p.y);
+      p.r *= scaleR;
+    }
+    if (this.frog) {
+      this.frog.x = mapX(this.frog.x);
+      this.frog.y = mapY(this.frog.y);
+      this.frog.size = this.pads[this.frog.padIdx].r * 0.58;
+    }
+    for (const f of this.fireflies) {
+      f.ax *= layout.vw / old.vw;
+      f.ay *= layout.vh / old.vh;
+    }
+    const d = this.dragonfly;
+    if (d) {
+      d.x = mapX(d.x); d.y = mapY(d.y);
+      d.tx = mapX(d.tx); d.ty = mapY(d.ty);
+    }
+    for (const leaf of this.leaves) {
+      leaf.x *= layout.vw / old.vw;
+      leaf.y *= layout.vh / old.vh;
+    }
+  }
+
+  generate(layout) {
     this.layout = layout;
     const { pond } = layout;
 
@@ -235,6 +271,7 @@ export class Ambient {
           const pad = pick(this.pads);
           d.tx = pad.x; d.ty = pad.y - 2;
           d.state = 'land';
+          d.settled = false; // wings keep whirring until touchdown
           d.landed = rand(1.5, 3.5);
         } else {
           d.state = 'hover';
@@ -258,11 +295,13 @@ export class Ambient {
       const dx = d.tx - d.x, dy = d.ty - d.y;
       const dist = Math.hypot(dx, dy);
       if (dist < 2) {
+        d.settled = true;
         d.landed -= dt;
         if (d.landed <= 0) {
           d.tx = pond.x + rand(0.1, 0.9) * pond.w;
           d.ty = pond.y + rand(0.1, 0.9) * pond.h;
           d.state = 'dash';
+          d.settled = false;
         }
       } else {
         d.x += (dx / dist) * 120 * dt;
@@ -491,8 +530,8 @@ export class Ambient {
       const moving = d.state === 'dash' || d.state === 'leave';
       const angle = moving ? Math.atan2(d.ty - d.y, d.tx - d.x) : Math.sin(time * 2) * 0.3;
       ctx.rotate(angle);
-      // Wings: blurred flickering ellipses (still when landed).
-      if (d.state !== 'land' || d.landed > 3) {
+      // Wings: blurred flickering ellipses (still once actually landed).
+      if (!d.settled) {
         ctx.fillStyle = `rgba(220, 235, 245, ${0.25 + 0.3 * Math.abs(Math.sin(time * 60))})`;
         for (const side of [-1, 1]) {
           ctx.beginPath();
