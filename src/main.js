@@ -1,4 +1,5 @@
 // Boot, resize/DPR handling, fixed-timestep game loop, layer composition.
+import { roundedRectPath } from './util.js';
 import { computeLayout, renderBackground } from './scene.js';
 import { Water } from './water.js';
 import { createSchool } from './fish.js';
@@ -44,27 +45,38 @@ const game = {
   },
 };
 
-// Gentle nudges toward the interactions — each shown once, early on.
+// Gentle nudges toward the interactions, cycling forever (~11s per hint:
+// 5.5s visible, 5.5s quiet). Hints that don't apply right now are skipped.
 const HINTS = [
-  { when: t => t >= 8, text: 'poke the water' },
-  { when: t => t >= 22, text: 'the little cup by the pond holds fish food' },
-  { when: t => t >= 30 && game.dog.state !== 'offscreen', text: 'the pup loves a little pat' },
+  { text: 'poke the water' },
+  { text: 'the little cup by the pond holds fish food' },
+  { text: 'the pup loves a little pat', need: () => game.dog.state !== 'offscreen' },
+  { text: 'shh… listen to the garden', need: () => game.audio.unlocked && game.audio.enabled },
 ];
 const hintEl = document.getElementById('actionHint');
-let hintIdx = 0;
-let hintShownAt = 0;
+let hintIdx = -1;
+let hintVisible = false;
+let hintAt = 8; // first hint fades in at t=8s
 
 function updateHints(time) {
-  if (hintIdx >= HINTS.length) return;
-  const h = HINTS[hintIdx];
-  if (!h.on && h.when(time)) {
-    h.on = true;
-    hintShownAt = time;
-    hintEl.textContent = h.text;
-    hintEl.classList.remove('hidden');
-  } else if (h.on && time >= hintShownAt + 6) {
+  if (time < hintAt) return;
+  if (!hintVisible) {
+    for (let k = 0; k < HINTS.length; k++) {
+      hintIdx = (hintIdx + 1) % HINTS.length;
+      const h = HINTS[hintIdx];
+      if (!h.need || h.need()) {
+        hintEl.textContent = h.text;
+        hintEl.classList.remove('hidden');
+        hintVisible = true;
+        hintAt = time + 5.5;
+        return;
+      }
+    }
+    hintAt = time + 4; // nothing applicable — try again shortly
+  } else {
     hintEl.classList.add('hidden');
-    hintIdx++;
+    hintVisible = false;
+    hintAt = time + 5.5;
   }
 }
 
@@ -141,10 +153,15 @@ function render() {
   ctx.drawImage(bgCanvas, 0, 0, game.layout.vw, game.layout.vh);
 
   // 2. Fish shadows, then fish + pellets (under the ripple overlay so the
-  //    water reads as *over* them).
+  //    water reads as *over* them). Clipped to the pond so no tail or fin
+  //    ever draws across the stone coping.
+  ctx.save();
+  roundedRectPath(ctx, game.layout.pond.x, game.layout.pond.y, game.layout.pond.w, game.layout.pond.h, game.layout.pondRadius);
+  ctx.clip();
   for (const f of game.fishes) f.drawShadow(ctx);
   game.food.drawPellets(ctx, t);
   for (const f of game.fishes) f.draw(ctx);
+  ctx.restore();
 
   // 3. Water shimmer + ripples.
   game.water.draw(ctx, t);
@@ -153,11 +170,12 @@ function render() {
   game.ambient.drawPads(ctx, t);
   game.ambient.drawFlyers(ctx, t);
 
-  // 5. The doxie, on the gravel.
+  // 5. The doxie and the cup. The resting cup sits behind her (she walks in
+  //    front of it); it pops to the top layer only while lifted or in flight.
+  const cupLifted = game.food.dragging || game.food.armed || game.food.returnT < 1;
+  if (!cupLifted) game.food.drawCup(ctx, t);
   game.dog.draw(ctx, t);
-
-  // 6. UI.
-  game.food.drawCup(ctx, t);
+  if (cupLifted) game.food.drawCup(ctx, t);
 
   if (DEBUG) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';

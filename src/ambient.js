@@ -13,12 +13,13 @@ export class Ambient {
   resize(layout) {
     this.layout = layout;
     const { pond } = layout;
-    // Two clusters of lily pads (like the reference photo: one corner cluster,
-    // one small mid-pond group).
+    // Three clusters of lily pads (like the reference photo: a big corner
+    // cluster plus smaller drifting groups).
     this.pads = [];
     const clusters = [
-      { cx: pond.x + pond.w * 0.16, cy: pond.y + pond.h * 0.78, n: 4, r: pond.w * 0.1 },
-      { cx: pond.x + pond.w * 0.58, cy: pond.y + pond.h * 0.3, n: 2, r: pond.w * 0.06 },
+      { cx: pond.x + pond.w * 0.16, cy: pond.y + pond.h * 0.75, n: 5, r: pond.w * 0.11 },
+      { cx: pond.x + pond.w * 0.6, cy: pond.y + pond.h * 0.26, n: 3, r: pond.w * 0.07 },
+      { cx: pond.x + pond.w * 0.85, cy: pond.y + pond.h * 0.66, n: 3, r: pond.w * 0.08 },
     ];
     for (const c of clusters) {
       for (let i = 0; i < c.n; i++) {
@@ -42,6 +43,23 @@ export class Ambient {
     }
     // One pink lotus on a random pad in the big cluster.
     if (this.pads.length) this.pads[Math.floor(rand(0, 3.99))].flower = true;
+
+    // A little frog perched on the largest flowerless pad.
+    let best = -1;
+    for (let i = 0; i < this.pads.length; i++) {
+      if (!this.pads[i].flower && (best < 0 || this.pads[i].r > this.pads[best].r)) best = i;
+    }
+    this.frog = best < 0 ? null : {
+      padIdx: best, fromIdx: best,
+      x: 0, y: 0,
+      size: this.pads[best].r * 0.58,
+      angle: rand(0, TAU),
+      hopT: -1,
+      nextHop: rand(15, 40),
+      blinkT: 0,
+      throatT: 0,
+      croakT: rand(10, 30),
+    };
   }
 
   update(dt, time, fishes, water, audio) {
@@ -65,6 +83,8 @@ export class Ambient {
       p.x = p.ax + Math.sin(time * 0.13 * TAU + p.phase) * p.driftR + p.nudgeX + h * 2;
       p.y = p.ay + Math.cos(time * 0.09 * TAU + p.phase * 1.6) * p.driftR * 0.8 + p.nudgeY + h * 2;
     }
+
+    this.updateFrog(dt, water, audio);
 
     // Dragonfly.
     this.dragonflyTimer -= dt;
@@ -119,6 +139,54 @@ export class Ambient {
       }
     }
     this.leaves = this.leaves.filter(l => l.age < 900);
+  }
+
+  updateFrog(dt, water, audio) {
+    const f = this.frog;
+    if (!f) return;
+
+    f.blinkT = Math.max(0, f.blinkT - dt);
+    if (f.blinkT <= 0 && Math.random() < dt / 6) f.blinkT = 0.16;
+
+    f.throatT = Math.max(0, f.throatT - dt);
+    f.croakT -= dt;
+    if (f.croakT <= 0) {
+      f.croakT = rand(20, 55);
+      f.throatT = 0.5;
+      audio.croak();
+    }
+
+    if (f.hopT >= 0) {
+      // Mid-hop: ease between pads.
+      f.hopT += dt / 0.5;
+      const from = this.pads[f.fromIdx], to = this.pads[f.padIdx];
+      const t = Math.min(1, f.hopT);
+      const e = t * t * (3 - 2 * t);
+      f.x = from.x + (to.x - from.x) * e;
+      f.y = from.y + (to.y - from.y) * e;
+      if (t >= 1) {
+        f.hopT = -1;
+        // Landing rocks the pad and sends a soft ring out from under it.
+        to.nudgeX += Math.cos(f.angle) * 3;
+        to.nudgeY += Math.sin(f.angle) * 3;
+        water.disturb(to.x, to.y, 0.3, 2.4);
+        audio.plip(0.35, 0.8);
+      }
+    } else {
+      const pad = this.pads[f.padIdx];
+      f.x = pad.x;
+      f.y = pad.y;
+      f.nextHop -= dt;
+      if (f.nextHop <= 0 && this.pads.length > 1) {
+        f.nextHop = rand(18, 45);
+        f.fromIdx = f.padIdx;
+        let n;
+        do { n = Math.floor(rand(0, this.pads.length)); } while (n === f.padIdx || this.pads[n].flower);
+        f.padIdx = n;
+        f.angle = Math.atan2(this.pads[n].y - pad.y, this.pads[n].x - pad.x);
+        f.hopT = 0;
+      }
+    }
   }
 
   updateDragonfly(dt) {
@@ -241,6 +309,103 @@ export class Ambient {
       }
       ctx.restore();
     }
+
+    this.drawFrog(ctx, time);
+  }
+
+  // A little top-down frog: plump body, bulgy eyes, folded back legs.
+  drawFrog(ctx, time) {
+    const f = this.frog;
+    if (!f) return;
+    const s = f.size;
+    const hop = f.hopT >= 0 ? Math.sin(Math.min(1, f.hopT) * Math.PI) : 0;
+
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.angle);
+    ctx.scale(1 + hop * 0.35, 1 + hop * 0.35); // rises toward the camera mid-hop
+    const breathe = 1 + 0.04 * Math.sin(time * TAU * 0.5);
+
+    // Soft dark ground shadow so he pops off the pad.
+    ctx.fillStyle = 'rgba(20, 40, 20, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.05, s * 0.12, s * 1.15, s * 0.8, 0, 0, TAU);
+    ctx.fill();
+
+    // Folded back legs.
+    ctx.fillStyle = '#5e8f3c';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(-s * 0.5, side * s * 0.52, s * 0.52, s * 0.22, side * 0.45, 0, TAU);
+      ctx.fill();
+    }
+
+    // Body — warmer, yellower green than the pads so he reads instantly.
+    const g = ctx.createRadialGradient(s * 0.25, -s * 0.2, 0, 0, 0, s * 1.2);
+    g.addColorStop(0, '#a8cf68');
+    g.addColorStop(1, '#6fa344');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 0.95 * breathe, s * 0.68 * breathe, 0, 0, TAU);
+    ctx.fill();
+
+    // Dorsal stripe + mottling.
+    ctx.strokeStyle = 'rgba(228, 240, 190, 0.5)';
+    ctx.lineWidth = s * 0.12;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.68, 0);
+    ctx.lineTo(s * 0.5, 0);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(60, 92, 44, 0.5)';
+    for (const [mx, my] of [[-0.3, 0.3], [0.1, -0.35], [-0.45, -0.2], [0.3, 0.28]]) {
+      ctx.beginPath();
+      ctx.arc(mx * s, my * s, s * 0.09, 0, TAU);
+      ctx.fill();
+    }
+
+    // Throat puff while croaking.
+    if (f.throatT > 0) {
+      const p = Math.sin((0.5 - f.throatT) / 0.5 * Math.PI);
+      ctx.fillStyle = 'rgba(235, 232, 195, 0.9)';
+      ctx.beginPath();
+      ctx.ellipse(s * 0.62, 0, s * 0.28 * (0.4 + p * 0.8), s * 0.24 * (0.4 + p * 0.8), 0, 0, TAU);
+      ctx.fill();
+    }
+
+    // Bulgy eyes (with blink).
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = '#6a9a48';
+      ctx.beginPath();
+      ctx.arc(s * 0.6, side * s * 0.36, s * 0.26, 0, TAU);
+      ctx.fill();
+      if (f.blinkT <= 0) {
+        ctx.fillStyle = '#1e2415';
+        ctx.beginPath();
+        ctx.arc(s * 0.65, side * s * 0.36, s * 0.13, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.beginPath();
+        ctx.arc(s * 0.69, side * s * 0.31, s * 0.05, 0, TAU);
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = '#3d5c2c';
+        ctx.lineWidth = s * 0.06;
+        ctx.beginPath();
+        ctx.arc(s * 0.65, side * s * 0.36, s * 0.12, 0.3, Math.PI - 0.3);
+        ctx.stroke();
+      }
+    }
+
+    // Front feet.
+    ctx.fillStyle = '#4f7a38';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(s * 0.78, side * s * 0.5, s * 0.11, 0, TAU);
+      ctx.fill();
+    }
+
+    ctx.restore();
   }
 
   drawFlyers(ctx, time) {

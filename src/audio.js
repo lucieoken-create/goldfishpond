@@ -18,6 +18,15 @@ export class AudioEngine {
     this.unlocked = true;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    // iOS mutes Web Audio when the ringer switch is on silent unless the
+    // page is in the media-playback audio category. Ask for it via the
+    // AudioSession API where available, and force it everywhere else by
+    // looping a silent <audio> element (must start inside this gesture).
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
+    } catch (e) { /* not supported — the keepalive below covers it */ }
+    this.startSilentKeepalive();
+
     this.ctx = new AC();
     if (this.ctx.state === 'suspended') this.ctx.resume();
 
@@ -35,6 +44,26 @@ export class AudioEngine {
     this.startRustle();
 
     if (this.enabled) this.fadeTo(1, 1.2);
+  }
+
+  // A tiny silent looping WAV in an <audio> element. Its only job is to keep
+  // iOS in "playback" mode so the Web Audio graph ignores the silent switch.
+  startSilentKeepalive() {
+    const samples = 4410; // 0.1s of silence, 16-bit mono 44.1kHz
+    const buf = new ArrayBuffer(44 + samples * 2);
+    const v = new DataView(buf);
+    const tag = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+    tag(0, 'RIFF'); v.setUint32(4, 36 + samples * 2, true); tag(8, 'WAVEfmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 44100, true); v.setUint32(28, 88200, true);
+    v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    tag(36, 'data'); v.setUint32(40, samples * 2, true);
+    const el = document.createElement('audio');
+    el.src = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+    el.loop = true;
+    el.setAttribute('playsinline', '');
+    el.play().catch(() => { /* fine — desktop browsers don't need it */ });
+    this.keepalive = el;
   }
 
   makeNoiseBuffer() {
@@ -289,5 +318,34 @@ export class AudioEngine {
   // Leaf touching down: the softest plip.
   leafDrop() {
     this.plip(0.35, 1.4);
+  }
+
+  // Frog croak: low buzzy sweep with a fast amplitude wobble.
+  croak() {
+    if (!this.ready()) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(96, t);
+    osc.frequency.linearRampToValueAtTime(80, t + 0.24);
+    const lp = this.ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 420;
+    lp.Q.value = 3;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.045, t + 0.03);
+    g.gain.setTargetAtTime(0.0001, t + 0.2, 0.05);
+    const wobble = this.ctx.createOscillator();
+    wobble.frequency.value = 24;
+    const wobbleG = this.ctx.createGain();
+    wobbleG.gain.value = 0.018;
+    wobble.connect(wobbleG);
+    wobbleG.connect(g.gain);
+    osc.connect(lp);
+    lp.connect(g);
+    g.connect(this.master);
+    osc.start(t); osc.stop(t + 0.4);
+    wobble.start(t); wobble.stop(t + 0.4);
   }
 }

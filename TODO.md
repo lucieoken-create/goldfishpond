@@ -13,17 +13,24 @@
       low-res canvas upscaled with `imageSmoothingEnabled = false`, chunky
       sprites, limited palette — biggest-ticket item, design before building.
 
-## Small
-- [ ] **Dog walks under the cup** — when she passes the food cup, the cup
-      renders on top of her. Draw order in `src/main.js` `render()`: the cup
-      (step 6, UI) comes after the dog (step 5). Fix: draw the resting cup
-      before the dog so she passes in front of it; keep it topmost only while
-      it's being dragged/armed.
-
 ## Pending
-- [ ] Real-device check (iOS Safari audio unlock, touch feel, performance).
-- [ ] Listen pass on the new audio mix (quieter water, birds) — tuned by ear
-      only in theory; Lucie should judge on speakers/headphones.
+- [ ] Verify on iPhone: audio should now play even with the ringer on silent
+      (AudioSession API + silent looping <audio> keepalive). Lucie to confirm.
+- [ ] Listen pass: birds, frog croak, quieter water — judge on real speakers.
+
+## Done July 8 2026, round 2 (verified in preview)
+- [x] More lily pads — 11 across three clusters.
+- [x] Frog on a lily pad — breathes, blinks, croaks with a throat puff
+      (synthesized croak), and hops to another pad every ~20–45s.
+- [x] Fish clipping over the stone coping — stronger containment steering,
+      wider hard clamp, and fish/pellets/shadows are render-clipped to the pond.
+- [x] Flowering bushes — blossom drifts on the hedge (pink/white/lavender)
+      and flowering tufts in the bottom corners.
+- [x] iOS silent-switch audio fix (needs on-device confirmation).
+- [x] Hints now cycle forever (~11s apart) instead of appearing once; added a
+      fourth hint and inapplicable ones are skipped.
+- [x] Cup z-order — the resting cup now sits behind the dog; it only pops to
+      the top layer while lifted/armed/in flight.
 
 ## Done July 8 2026 (verified in preview)
 - [x] Dog stuck-shaking bug — SHAKE state removed entirely; added a 30s visit

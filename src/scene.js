@@ -107,9 +107,45 @@ function drawFoliageBorder(ctx, layout) {
   ctx.fillStyle = sh;
   ctx.fillRect(0, hedgeH * 0.8, vw, hedgeH * 0.7);
 
-  // Low planting tufts at the bottom corners.
-  drawBlobCluster(ctx, vw * 0.03, vh * 0.97, vw * 0.06, PALETTE.foliage, 14);
-  drawBlobCluster(ctx, vw * 0.97, vh * 0.97, vw * 0.06, PALETTE.foliage, 14);
+  // Flowering patches along the hedge — soft drifts of blossom.
+  const hedgeBlooms = [
+    { x: vw * rand(0.12, 0.2), c: ['#e8a7b8', '#f0bccb'] },          // pink
+    { x: vw * rand(0.38, 0.48), c: ['#f2ede2', '#faf6ee'] },         // white
+    { x: vw * rand(0.85, 0.92), c: ['#c9a7d8', '#b98fd0'] },         // lavender
+  ];
+  for (const b of hedgeBlooms) {
+    drawBlossoms(ctx, b.x, hedgeH * rand(0.35, 0.55), vw * 0.05, 14, b.c);
+  }
+
+  // Low flowering bushes at the bottom corners.
+  drawBlobCluster(ctx, vw * 0.03, vh * 0.98, vw * 0.075, PALETTE.foliage, 16);
+  drawBlobCluster(ctx, vw * 0.97, vh * 0.98, vw * 0.075, PALETTE.foliage, 16);
+  drawBlossoms(ctx, vw * 0.035, vh * 0.965, vw * 0.05, 10, ['#e8a7b8', '#f0bccb']);
+  drawBlossoms(ctx, vw * 0.965, vh * 0.965, vw * 0.05, 10, ['#f2ede2', '#c9a7d8']);
+}
+
+// Five-petal blossoms scattered over foliage.
+function drawBlossoms(ctx, cx, cy, radius, n, tones) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(0, TAU);
+    const d = rand(0, radius);
+    const x = cx + Math.cos(a) * d;
+    const y = cy + Math.sin(a) * d * 0.6;
+    const r = rand(2.2, 4);
+    ctx.fillStyle = pick(tones);
+    ctx.globalAlpha = rand(0.75, 0.95);
+    for (let p = 0; p < 5; p++) {
+      const pa = (p / 5) * TAU + a;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(pa) * r * 0.75, y + Math.sin(pa) * r * 0.75, r * 0.55, 0, TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#f5d76e';
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.38, 0, TAU);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawFoliageBand(ctx, x, y, w, h, tones, darkTone) {

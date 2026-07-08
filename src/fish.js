@@ -88,8 +88,9 @@ export class Fish {
       }
     }
 
-    // Containment: steer toward center when near the pond wall.
-    const margin = this.size * 1.6;
+    // Containment: steer toward center when near the pond wall. The margin
+    // is generous because pos is the HEAD — body and tail trail well behind.
+    const margin = this.size * 2.6;
     const sdf = roundedRectSDF(this.x, this.y, pond, pondRadius);
     if (sdf > -margin) {
       const cx = pond.x + pond.w / 2, cy = pond.y + pond.h / 2;
@@ -114,7 +115,7 @@ export class Fish {
     this.y += Math.sin(this.heading) * this.speed * dt;
 
     // Hard safety clamp inside pond.
-    const pad = this.size * 0.5;
+    const pad = this.size * 1.1;
     this.x = clamp(this.x, pond.x + pad, pond.x + pond.w - pad);
     this.y = clamp(this.y, pond.y + pad, pond.y + pond.h - pad);
 
