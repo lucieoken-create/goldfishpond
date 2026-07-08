@@ -122,6 +122,14 @@ export function drawFishPx(c, f, S, pal) {
   if (f.gulpTimer > 0) {
     const m = pos(-0.45, 0);
     px(c, pal.fishWhite[1], m.x, m.y);
+    // A brief "nom" flash: four sparkle pixels around the mouth.
+    if (f.gulpTimer > 0.35) {
+      const sp = pal.water[7];
+      px(c, sp, m.x - 2, m.y - 2);
+      px(c, sp, m.x + 2, m.y - 2);
+      px(c, sp, m.x - 2, m.y + 2);
+      px(c, sp, m.x + 2, m.y + 2);
+    }
   }
 }
 

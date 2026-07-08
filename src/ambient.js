@@ -246,7 +246,8 @@ export class Ambient {
     return !!f && f.hopT < 0 && Math.hypot(x - f.x, y - f.y) < f.size * 2;
   }
 
-  // Poked! An indignant little ribbit.
+  // Poked! An indignant little ribbit — and three quick pokes is quite
+  // enough, thank you: he hops off to a quieter pad.
   pokeFrog(audio) {
     const f = this.frog;
     if (!f) return;
@@ -254,6 +255,13 @@ export class Ambient {
     f.blinkT = 0.2;
     f.croakT = Math.max(f.croakT, 8); // don't double-croak right after
     audio.croak();
+    const now = performance.now() / 1000;
+    this.pokes = (this.pokes || []).filter(t => now - t < 4);
+    this.pokes.push(now);
+    if (this.pokes.length >= 3 && f.hopT < 0) {
+      this.pokes.length = 0;
+      f.nextHop = 0.01;
+    }
   }
 
   updateDragonfly(dt) {

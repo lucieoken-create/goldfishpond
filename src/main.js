@@ -223,6 +223,7 @@ nightBtn.addEventListener('click', (e) => {
   game.hideHint();
   game.night = !game.night;
   nightIcon.textContent = game.night ? '☀️' : '🌙';
+  document.title = game.night ? 'Goldfish Pond ☾' : 'Goldfish Pond';
 });
 
 function step(dt) {
@@ -339,6 +340,7 @@ function render() {
     ctx.drawImage(swapCanvas, 0, 0, vw, vh);
     if (p >= 1) {
       document.body.classList.toggle('pixel-mode', styleSwap.to === 'pixel');
+      game.audio.styleFlourish(styleSwap.to === 'pixel');
       styleSwap = null;
       if (game._reflectStyle) game._reflectStyle();
     }
@@ -390,3 +392,10 @@ requestAnimationFrame(frame);
 window.__pond = game; // debug handle
 game._resize = resize;
 game._step = step;
+
+// A hello for anyone who peeks under the pond.
+console.log(
+  '%c🐟 goldfish pond',
+  'font-weight: bold; font-size: 14px;',
+  '\nevery fish, ripple, and ribbit here is drawn and synthesized in code — no images, no audio files.\nfeed them kindly: window.__pond'
+);

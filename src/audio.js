@@ -315,6 +315,32 @@ export class AudioEngine {
     return this.ctx && this.enabled;
   }
 
+  // A tiny costume-change flourish when the style dissolve completes: a chip
+  // arpeggio stepping INTO 8-bit, a soft round triad settling back into
+  // painted. Quiet and quick — a wink, not a fanfare.
+  styleFlourish(chip) {
+    if (!this.ready()) return;
+    if (chip) {
+      this.chipBlip('square', [523], 0.07, 0.018);
+      this.chipBlip('square', [659], 0.07, 0.018, 0.08);
+      this.chipBlip('square', [784, 1046], 0.08, 0.02, 0.16);
+    } else {
+      const t = this.ctx.currentTime;
+      [[262, 0], [330, 0.06], [392, 0.12]].forEach(([f, d]) => {
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        o.frequency.value = f;
+        g.gain.setValueAtTime(0, t + d);
+        g.gain.linearRampToValueAtTime(0.016, t + d + 0.06);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.55);
+        o.connect(g);
+        g.connect(this.master);
+        o.start(t + d);
+        o.stop(t + d + 0.6);
+      });
+    }
+  }
+
   // Chip-mode voice: an oscillator stepping through quantized pitches with a
   // flat, hard-cut envelope — the whole "8-bit instrument" in one helper.
   chipBlip(type, steps, stepDur, level, delay = 0) {

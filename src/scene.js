@@ -182,11 +182,12 @@ function drawFoliageBand(ctx, x, y, w, h, tones, darkTone) {
 
 // A clump: dark under-shadow, mid-tone leaf rosettes, lighter crown leaves.
 function drawLeafClump(ctx, cx, cy, r, tones, seed) {
-  // Under-shadow.
-  ctx.globalAlpha = 0.5;
+  // Under-shadow, kept smaller than the leaf mass so it never pokes out
+  // onto the gravel as a gray halo ring.
+  ctx.globalAlpha = 0.3;
   ctx.fillStyle = 'rgba(30, 44, 26, 0.8)';
   ctx.beginPath();
-  ctx.ellipse(cx + r * 0.12, cy + r * 0.22, r * 1.05, r * 0.8, 0, 0, TAU);
+  ctx.ellipse(cx + r * 0.08, cy + r * 0.18, r * 0.8, r * 0.58, 0, 0, TAU);
   ctx.fill();
 
   // Two or three overlapping rosettes in the cluster's tones.
