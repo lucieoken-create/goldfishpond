@@ -90,6 +90,21 @@ export class AudioEngine {
     return src;
   }
 
+  // Silence while the tab is hidden (and on page close) — the garden only
+  // makes sound while you're actually looking at it.
+  hush() {
+    if (!this.ctx) return;
+    clearTimeout(this._suspendTimer);
+    this.ctx.suspend();
+    if (this.keepalive) this.keepalive.pause();
+  }
+
+  unhush() {
+    if (!this.ctx || !this.enabled) return;
+    this.ctx.resume();
+    if (this.keepalive) this.keepalive.play().catch(() => {});
+  }
+
   fadeTo(v, secs) {
     if (!this.master) return;
     const t = this.ctx.currentTime;

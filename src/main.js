@@ -124,9 +124,14 @@ function resize() {
 window.addEventListener('resize', resize);
 // If the page loads in a hidden/backgrounded tab the viewport can report
 // 0×0 and rAF won't fire; finish booting the moment we become visible.
+// Also hush all audio while the tab is hidden — a background pond should
+// be a silent pond.
 document.addEventListener('visibilitychange', () => {
   if (!game.layout) resize();
+  if (document.hidden) game.audio.hush();
+  else game.audio.unhush();
 });
+window.addEventListener('pagehide', () => game.audio.hush());
 resize();
 setupInput(canvas, game);
 
