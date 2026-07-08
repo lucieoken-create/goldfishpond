@@ -170,8 +170,7 @@ export class PixelRenderer {
         const hgt = cur[gy + clamp(Math.round((x / pw) * gw), 1, gw - 2)];
         let idx = this.waterBase[i] + hgt * 2.6 + bayer(x, y) * 0.5;
         const sp = (this.waterPhase[i] + cycle) & 7;
-        if (sp === 0) idx += 4.2;
-        else if (sp === 1) idx += 1.2;
+        if (sp === 0) idx += 3.6;
         if (night) idx += this.moonBoost[i] * nightT * 2.2;
         const c = ramp[idx < 0 ? 0 : idx > 7 ? 7 : idx | 0];
         data[o] = c[0]; data[o + 1] = c[1]; data[o + 2] = c[2]; data[o + 3] = 255;

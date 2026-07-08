@@ -147,7 +147,7 @@ export class Ambient {
     }
     if (this.dragonfly) this.updateDragonfly(dt);
 
-    // Falling leaves.
+    // Falling blossoms drift down from the flowering trees.
     this.leafTimer -= dt;
     if (this.leafTimer <= 0) {
       this.leafTimer = rand(20, 60);
@@ -160,7 +160,7 @@ export class Ambient {
         rot: rand(0, TAU),
         age: 0,
         floating: false,
-        tone: pick(['#c9a05a', '#b58a45', '#d4b06a', '#a8793a']),
+        tone: pick(['#e8a7b8', '#f0bccb', '#e595ac', '#f2c7d4']),
       });
     }
     for (const leaf of this.leaves) {
@@ -501,23 +501,23 @@ export class Ambient {
   }
 
   drawFlyers(ctx, time) {
-    // Leaves.
+    // Blossoms: five petals around a gold heart, tumbling as they fall.
     for (const leaf of this.leaves) {
       ctx.save();
       ctx.translate(leaf.x, leaf.y);
-      ctx.rotate(leaf.rot);
       const fade = leaf.floating && leaf.floatAge > 17 ? (20 - leaf.floatAge) / 3 : 1;
       ctx.globalAlpha = clamp(fade, 0, 1);
       ctx.fillStyle = leaf.tone;
+      for (let i = 0; i < 5; i++) {
+        const a = leaf.rot + (i / 5) * TAU;
+        ctx.beginPath();
+        ctx.ellipse(Math.cos(a) * 3.6, Math.sin(a) * 3.6, 3.3, 2.1, a, 0, TAU);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#f5d76e';
       ctx.beginPath();
-      ctx.ellipse(0, 0, 7, 3.2, 0, 0, TAU);
+      ctx.arc(0, 0, 1.7, 0, TAU);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(120, 85, 40, 0.5)';
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(-7, 0);
-      ctx.lineTo(7, 0);
-      ctx.stroke();
       ctx.restore();
     }
     ctx.globalAlpha = 1;
