@@ -44,6 +44,50 @@ export class Ambient {
       leaf.x *= layout.vw / old.vw;
       leaf.y *= layout.vh / old.vh;
     }
+    this.bakePads();
+  }
+
+  // Bake each pad's static art (shadow ring, gradient, rim, veins) once —
+  // eleven fresh radial gradients per frame was pure waste. The lotus is
+  // drawn live so it keeps its gentle bloom.
+  bakePads() {
+    for (const p of this.pads) {
+      const size = Math.ceil((p.r + 4) * 2);
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = size * 2; // 2x for crisp downscale
+      const c = cv.getContext('2d');
+      c.scale(2, 2);
+      c.translate(size / 2, size / 2);
+
+      c.fillStyle = 'rgba(15, 30, 22, 0.3)';
+      c.beginPath();
+      c.arc(1.5, 2.5, p.r, 0, TAU);
+      c.fill();
+
+      const g = c.createRadialGradient(-p.r * 0.3, -p.r * 0.3, 0, 0, 0, p.r);
+      g.addColorStop(0, p.tone > 0 ? PALETTE.lilyPadLight : PALETTE.lilyPad);
+      g.addColorStop(1, PALETTE.lilyPadDark);
+      c.fillStyle = g;
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.arc(0, 0, p.r, p.notch + 0.5, p.notch + TAU - 0.15);
+      c.closePath();
+      c.fill();
+
+      c.strokeStyle = 'rgba(35, 60, 30, 0.4)';
+      c.lineWidth = 1.2;
+      c.stroke();
+      c.strokeStyle = 'rgba(35, 60, 30, 0.18)';
+      for (let i = 0; i < 5; i++) {
+        const a = p.notch + 0.8 + (i / 5) * (TAU - 1.3);
+        c.beginPath();
+        c.moveTo(0, 0);
+        c.lineTo(Math.cos(a) * p.r * 0.85, Math.sin(a) * p.r * 0.85);
+        c.stroke();
+      }
+      p.sprite = cv;
+      p.spriteSize = size;
+    }
   }
 
   generate(layout) {
@@ -93,6 +137,8 @@ export class Ambient {
     }
     // One pink lotus on a random pad in the big cluster.
     if (this.pads.length) this.pads[Math.floor(rand(0, 3.99))].flower = true;
+
+    this.bakePads();
 
     // A little frog perched on the largest flowerless pad.
     let best = -1;
@@ -334,36 +380,8 @@ export class Ambient {
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
 
-      // Soft shadow ring under the pad.
-      ctx.fillStyle = 'rgba(15, 30, 22, 0.3)';
-      ctx.beginPath();
-      ctx.arc(1.5, 2.5, p.r, 0, TAU);
-      ctx.fill();
-
-      // Pad with a notch wedge.
-      const g = ctx.createRadialGradient(-p.r * 0.3, -p.r * 0.3, 0, 0, 0, p.r);
-      const light = p.tone > 0 ? PALETTE.lilyPadLight : PALETTE.lilyPad;
-      g.addColorStop(0, light);
-      g.addColorStop(1, PALETTE.lilyPadDark);
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, p.r, p.notch + 0.5, p.notch + TAU - 0.15);
-      ctx.closePath();
-      ctx.fill();
-
-      // Rim + veins.
-      ctx.strokeStyle = 'rgba(35, 60, 30, 0.4)';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(35, 60, 30, 0.18)';
-      for (let i = 0; i < 5; i++) {
-        const a = p.notch + 0.8 + (i / 5) * (TAU - 1.3);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(a) * p.r * 0.85, Math.sin(a) * p.r * 0.85);
-        ctx.stroke();
-      }
+      // Static pad art comes from the baked sprite.
+      ctx.drawImage(p.sprite, -p.spriteSize / 2, -p.spriteSize / 2, p.spriteSize, p.spriteSize);
 
       // Lotus flower.
       if (p.flower) {

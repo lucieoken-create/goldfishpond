@@ -4,13 +4,15 @@ import { PALETTE, TAU, rand, pick, clamp, angleDiff, roundedRectSDF, gauss } fro
 
 const SPINE = 5;
 
+// Body/patch colors come from the shared PALETTE so recoloring the garden
+// happens in one place; bellies and fins are per-scheme tints of them.
 const SCHEMES = [
-  { body: '#e8853a', belly: '#f2a45e', fins: 'rgba(240, 150, 80, 0.55)', patch: null },
-  { body: '#e8853a', belly: '#f2a45e', fins: 'rgba(240, 150, 80, 0.55)', patch: null },
-  { body: '#d46a25', belly: '#e8853a', fins: 'rgba(220, 130, 60, 0.55)', patch: null },
-  { body: '#f2ede2', belly: '#faf6ee', fins: 'rgba(250, 240, 225, 0.5)', patch: '#e8853a' },
-  { body: '#f2ede2', belly: '#faf6ee', fins: 'rgba(250, 240, 225, 0.5)', patch: '#d9482f' },
-  { body: '#e89b4f', belly: '#f2b877', fins: 'rgba(240, 170, 100, 0.55)', patch: '#f2ede2' },
+  { body: PALETTE.goldfishOrange, belly: '#f2a45e', fins: 'rgba(240, 150, 80, 0.55)', patch: null },
+  { body: PALETTE.goldfishOrange, belly: '#f2a45e', fins: 'rgba(240, 150, 80, 0.55)', patch: null },
+  { body: PALETTE.goldfishDeep, belly: PALETTE.goldfishOrange, fins: 'rgba(220, 130, 60, 0.55)', patch: null },
+  { body: PALETTE.goldfishWhite, belly: '#faf6ee', fins: 'rgba(250, 240, 225, 0.5)', patch: PALETTE.goldfishOrange },
+  { body: PALETTE.goldfishWhite, belly: '#faf6ee', fins: 'rgba(250, 240, 225, 0.5)', patch: '#d9482f' },
+  { body: '#e89b4f', belly: '#f2b877', fins: 'rgba(240, 170, 100, 0.55)', patch: PALETTE.goldfishWhite },
 ];
 
 export class Fish {
@@ -40,6 +42,26 @@ export class Fish {
     this.size = this.sizeFactor * Math.min(pond.w, pond.h) / 16;
     this.x = pond.x + (this.x - prevPond.x) / prevPond.w * pond.w;
     this.y = pond.y + (this.y - prevPond.y) / prevPond.h * pond.h;
+    this.bakeShadow();
+  }
+
+  // Pre-blur the drop shadow once — a per-frame ctx.filter blur for every
+  // fish was the most expensive draw call in the painterly scene.
+  bakeShadow() {
+    const s = this.size;
+    const pad = 8;
+    const w = Math.ceil(s * 2.1 + pad * 2);
+    const h = Math.ceil(s * 0.76 + pad * 2);
+    const cv = document.createElement('canvas');
+    cv.width = w;
+    cv.height = h;
+    const c = cv.getContext('2d');
+    c.fillStyle = 'rgba(12, 24, 18, 0.25)';
+    c.filter = 'blur(3px)';
+    c.beginPath();
+    c.ellipse(w / 2, h / 2, s * 1.05, s * 0.38, 0, 0, TAU);
+    c.fill();
+    this.shadowSprite = cv;
   }
 
   update(dt, layout, fishes, pellets, water, audio, time) {
@@ -166,14 +188,12 @@ export class Fish {
   }
 
   drawShadow(ctx) {
+    if (!this.shadowSprite) this.bakeShadow();
+    const sp = this.shadowSprite;
     ctx.save();
     ctx.translate(this.x + this.size * 0.35, this.y + this.size * 0.5);
     ctx.rotate(this.heading);
-    ctx.fillStyle = 'rgba(12, 24, 18, 0.25)';
-    ctx.filter = 'blur(3px)';
-    ctx.beginPath();
-    ctx.ellipse(-this.size * 0.5, 0, this.size * 1.05, this.size * 0.38, 0, 0, TAU);
-    ctx.fill();
+    ctx.drawImage(sp, -this.size * 0.5 - sp.width / 2, -sp.height / 2);
     ctx.restore();
   }
 

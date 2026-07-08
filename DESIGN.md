@@ -20,7 +20,7 @@ Canonical palette lives in `src/util.js` (`PALETTE`) and is painted, not tokeniz
 - **Chrome**: warm translucent cream `rgba(255,252,245,0.6–0.85)`, ink `#5a4f3a`, shadow `rgba(60,50,30,0.25)`
 - **Night**: multiply toward `rgb(105,127,187)`-ish, wash `rgba(18,26,64,…)`, moonlight `rgba(190,210,250,…)`, firefly `rgba(226,240,150,…)`
 
-Known debt: the goldfish/doxie PALETTE entries are duplicated as hardcoded hexes in `fish.js`/`dog.js` — treat `PALETTE` as the source of truth when refactoring, and 8-bit mode should introduce its own quantized palette table rather than reusing these.
+`PALETTE` in `src/util.js` is the source of truth: fish schemes and the doxie coat reference it directly. 8-bit mode has its own quantized table (`src/pixel/palette.js`) with day/night variants and cycling ramps.
 
 ## Typography
 

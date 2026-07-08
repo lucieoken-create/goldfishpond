@@ -44,7 +44,6 @@ const DAY = {
   frog: ['#4f7a38', '#6fa344', '#a8cf68'].map(hex),
   frogThroat: hex('#ebe8c3'),
   pellet: ['#a87f42', '#c9a05a', '#e8cf8f'].map(hex),
-  leaf: ['#a8793a', '#c9a05a', '#d4b06a'].map(hex),
   dragonfly: ['#2d5570', '#3a6a8a', '#cfe3ee'].map(hex),
   heart: hex('#d9482f'),
   cup: ['#8f4f33', '#b56a45', '#cc8258'].map(hex),

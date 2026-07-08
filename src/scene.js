@@ -1,5 +1,5 @@
 // Scene layout + one-shot painterly background rendering.
-import { PALETTE, rand, randInt, pick, roundedRectPath, TAU } from './util.js';
+import { PALETTE, rand, pick, roundedRectPath, TAU } from './util.js';
 
 // Compute all scene geometry from the viewport size (CSS pixels).
 export function computeLayout(vw, vh) {

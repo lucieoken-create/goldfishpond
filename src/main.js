@@ -25,6 +25,7 @@ let styleSwap = null; // { from, to, t }
 const swapCanvas = document.createElement('canvas');
 const swapCtx = swapCanvas.getContext('2d');
 const maskCache = [];
+let moon = null; // cached moonlight geometry + gradient, rebuilt on resize
 
 function maskFor(step) {
   if (!maskCache[step]) {
@@ -82,8 +83,6 @@ const game = {
     this.audio.splash(1);
     for (const f of this.fishes) f.startle(x, y);
   },
-
-  onFeed() { /* hook for future fun */ },
 
   petDog() {
     this.dog.pet();
@@ -163,6 +162,19 @@ function resize() {
   swapCanvas.width = canvas.width;
   swapCanvas.height = canvas.height;
   maskCache.length = 0;
+
+  // Moonlight glow: geometry is layout-fixed, so build the gradient once and
+  // scale its brightness with globalAlpha at draw time.
+  const mp = game.layout.pond;
+  moon = {
+    x: mp.x + mp.w * 0.72,
+    y: mp.y + mp.h * 0.3,
+    r: Math.min(mp.w, mp.h) * 0.34,
+  };
+  moon.grad = ctx.createRadialGradient(moon.x, moon.y, 0, moon.x, moon.y, moon.r);
+  moon.grad.addColorStop(0, 'rgba(190, 210, 250, 0.34)');
+  moon.grad.addColorStop(0.5, 'rgba(170, 195, 245, 0.12)');
+  moon.grad.addColorStop(1, 'rgba(170, 195, 245, 0)');
 
   if (!game.fishes.length) {
     game.fishes = createSchool(game.layout);
@@ -290,22 +302,17 @@ function drawPainted(ctx) {
     ctx.fillStyle = `rgba(18, 26, 64, ${0.16 * nt})`;
     ctx.fillRect(0, 0, vw, vh);
 
-    // Moonlight glinting on the water.
-    const mx = pond.x + pond.w * 0.72;
-    const my = pond.y + pond.h * 0.3;
-    const mr = Math.min(pond.w, pond.h) * 0.34;
+    // Moonlight glinting on the water (cached gradient, alpha-scaled).
     ctx.save();
     roundedRectPath(ctx, pond.x, pond.y, pond.w, pond.h, game.layout.pondRadius);
     ctx.clip();
     ctx.globalCompositeOperation = 'screen';
-    const mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
-    mg.addColorStop(0, `rgba(190, 210, 250, ${0.34 * nt})`);
-    mg.addColorStop(0.5, `rgba(170, 195, 245, ${0.12 * nt})`);
-    mg.addColorStop(1, 'rgba(170, 195, 245, 0)');
-    ctx.fillStyle = mg;
+    ctx.globalAlpha = nt;
+    ctx.fillStyle = moon.grad;
     ctx.beginPath();
-    ctx.ellipse(mx, my, mr * 1.5, mr, -0.4, 0, TAU_);
+    ctx.ellipse(moon.x, moon.y, moon.r * 1.5, moon.r, -0.4, 0, TAU_);
     ctx.fill();
+    ctx.globalAlpha = 1;
     ctx.restore();
 
     // Fireflies over everything.

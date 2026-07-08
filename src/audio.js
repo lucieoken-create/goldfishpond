@@ -13,7 +13,6 @@ export class AudioEngine {
     this.rustleTimer = 0;
     this.birdTimer = rand(4, 9);
     this.cricketTimer = rand(1, 4);
-    this.nightT = 0;
     this.chip = false; // 8-bit mode: square/triangle timbres, stepped pitch
   }
 
@@ -214,7 +213,6 @@ export class AudioEngine {
 
   // Call periodically from the game loop to schedule rustle swells.
   update(dt, nightT = 0) {
-    this.nightT = nightT;
     if (!this.ctx || !this.rustleGain) return;
     this.rustleTimer -= dt;
     if (this.rustleTimer <= 0) {
@@ -230,14 +228,14 @@ export class AudioEngine {
     this.birdTimer -= dt;
     if (this.birdTimer <= 0) {
       this.birdTimer = rand(10, 28);
-      if (this.nightT < 0.4) this.birdSong();
+      if (nightT < 0.4) this.birdSong();
     }
 
     // Crickets take the night shift.
     this.cricketTimer -= dt;
     if (this.cricketTimer <= 0) {
       this.cricketTimer = rand(2.5, 7);
-      if (this.nightT > 0.6) this.cricketChirp();
+      if (nightT > 0.6) this.cricketChirp();
     }
   }
 

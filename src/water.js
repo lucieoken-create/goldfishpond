@@ -42,6 +42,27 @@ export class Water {
     this.imgCtx = this.canvas.getContext('2d');
     this.img = this.imgCtx.createImageData(this.gw, this.gh);
 
+    // Blurred upscale cache: the 2px blur runs once per field update (half
+    // the frame rate) instead of on every drawn frame.
+    this.blurCanvas = this.blurCanvas || document.createElement('canvas');
+    this.blurCanvas.width = Math.max(1, Math.round(pond.w));
+    this.blurCanvas.height = Math.max(1, Math.round(pond.h));
+    this.blurCtx = this.blurCanvas.getContext('2d');
+
+    // One shared caustic blob sprite; the four shimmer blobs draw it scaled
+    // instead of building a fresh radial gradient each frame.
+    this.blobSprite = this.blobSprite || (() => {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 256;
+      const c = cv.getContext('2d');
+      const g = c.createRadialGradient(128, 128, 0, 128, 128, 128);
+      g.addColorStop(0, 'rgba(220, 235, 210, 0.5)');
+      g.addColorStop(1, 'rgba(220, 235, 210, 0)');
+      c.fillStyle = g;
+      c.fillRect(0, 0, 256, 256);
+      return cv;
+    })();
+
     this.shimmer = [];
     for (let i = 0; i < 4; i++) {
       this.shimmer.push({
@@ -131,6 +152,14 @@ export class Water {
       }
     }
     this.imgCtx.putImageData(img, 0, 0);
+
+    // Refresh the blurred pond-sized cache (runs at sim rate, not draw rate).
+    const bc = this.blurCtx;
+    bc.clearRect(0, 0, this.blurCanvas.width, this.blurCanvas.height);
+    bc.imageSmoothingEnabled = true;
+    bc.filter = 'blur(2px)';
+    bc.drawImage(this.canvas, 0, 0, this.blurCanvas.width, this.blurCanvas.height);
+    bc.filter = 'none';
   }
 
   // Draw shimmer + ripple overlay, clipped to the pond.
@@ -140,28 +169,19 @@ export class Water {
     roundedRectPath(ctx, pond.x, pond.y, pond.w, pond.h, pondRadius);
     ctx.clip();
 
-    // Caustic shimmer: large soft radial blobs drifting on slow sines.
+    // Caustic shimmer: large soft radial blobs drifting on slow sines,
+    // stamped from the shared pre-rendered sprite.
     ctx.globalCompositeOperation = 'soft-light';
     for (const b of this.shimmer) {
       const bx = pond.x + (b.ox + Math.sin(time * b.sx * TAU + b.phase) * 0.09) * pond.w;
       const by = pond.y + (b.oy + Math.cos(time * b.sy * TAU + b.phase * 1.7) * 0.07) * pond.h;
       const br = b.r * Math.min(pond.w, pond.h) * (1 + 0.12 * Math.sin(time * 0.11 * TAU + b.phase));
-      const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
-      g.addColorStop(0, 'rgba(220, 235, 210, 0.5)');
-      g.addColorStop(1, 'rgba(220, 235, 210, 0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(bx, by, br, 0, TAU);
-      ctx.fill();
+      ctx.drawImage(this.blobSprite, bx - br, by - br, br * 2, br * 2);
     }
     ctx.globalCompositeOperation = 'source-over';
 
-    // Ripple field, upscaled (bilinear smoothing + a touch of blur softens
-    // the low-res grid into liquid).
-    ctx.imageSmoothingEnabled = true;
-    ctx.filter = 'blur(2px)';
-    ctx.drawImage(this.canvas, pond.x, pond.y, pond.w, pond.h);
-    ctx.filter = 'none';
+    // Ripple field: pre-blurred at sim rate in renderField.
+    ctx.drawImage(this.blurCanvas, pond.x, pond.y, pond.w, pond.h);
 
     ctx.restore();
   }

@@ -82,7 +82,7 @@ html, body {
   right: 68px;
   padding: 6px 12px;
   border-radius: 14px;
-  background: rgba(255, 252, 245, 0.65);
+  background: rgba(255, 252, 245, 0.8);
   color: #5a4f3a;
   font-family: Georgia, 'Times New Roman', serif;
   font-style: italic;
@@ -104,7 +104,7 @@ html, body {
   transform: translateX(-50%);
   padding: 7px 16px;
   border-radius: 16px;
-  background: rgba(255, 252, 245, 0.6);
+  background: rgba(255, 252, 245, 0.8);
   color: #5a4f3a;
   font-family: Georgia, 'Times New Roman', serif;
   font-style: italic;

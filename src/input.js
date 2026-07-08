@@ -30,8 +30,7 @@ export function setupInput(canvas, game) {
     if (!game.layout) return;
     const { x, y } = toScene(e, canvas);
     if (game.food.dragging) {
-      const fed = game.food.endDrag(game.water, game.audio);
-      if (fed) game.onFeed(x, y);
+      game.food.endDrag(game.water, game.audio);
       return;
     }
     if (moved) return;
@@ -42,7 +41,6 @@ export function setupInput(canvas, game) {
     // (especially while drinking) and must not swallow armed-cup taps.
     if (overWater && game.food.armed) {
       game.food.feedAt(x, y, game.water, game.audio);
-      game.onFeed(x, y);
       return;
     }
 

@@ -1,11 +1,11 @@
 // The long-haired dachshund: procedural side-profile rig, walk cycle,
 // and a visit state machine with pant/drink/shake/tilt variations.
-import { TAU, rand, clamp, lerp } from './util.js';
+import { TAU, rand, clamp, lerp, PALETTE } from './util.js';
 
-const COAT = '#b5713a';
-const COAT_DEEP = '#96562a';
+const COAT = PALETTE.doxieRed;
+const COAT_DEEP = PALETTE.doxieDeep;
 const COAT_LIGHT = '#cf8f52';
-const CREAM = '#d9a86c';
+const CREAM = PALETTE.doxieCream;
 const TONGUE = '#e8798a';
 
 // States

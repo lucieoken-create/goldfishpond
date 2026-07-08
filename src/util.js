@@ -29,11 +29,6 @@ export function gauss(mean = 0, sd = 1) {
   return mean + (s - 2) * sd;
 }
 
-export function dist(x1, y1, x2, y2) {
-  const dx = x2 - x1, dy = y2 - y1;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
 // Shortest signed angular difference a→b, in (-PI, PI].
 export function angleDiff(a, b) {
   let d = (b - a) % TAU;
