@@ -1,12 +1,6 @@
 # Goldfish Pond — TODO
 
 ## Big additions (next up)
-- [ ] **Day/night toggle** — sun/moon icon button (decided: toggle, not slider),
-      slow dusk transition (~3s). At night the dog comes in and lies down asleep
-      by the pond and stays; petting him wakes him up and he walks off — then
-      comes back ~20s later. Needs: night palette/lighting pass over the scene,
-      sleeping pose + sleep/wake states in `src/dog.js`. Pet interaction already
-      exists (`Dog.pet()`).
 - [ ] **Art style selection: "painted" vs "8-bit".**
       8-bit inspiration: https://www.effectgames.com/demos/canvascycle/
       (palette-cycling pixel art). Likely a render-mode switch: pixelated
@@ -14,9 +8,21 @@
       sprites, limited palette — biggest-ticket item, design before building.
 
 ## Pending
-- [ ] Verify on iPhone: audio should now play even with the ringer on silent
-      (AudioSession API + silent looping <audio> keepalive). Lucie to confirm.
-- [ ] Listen pass: birds, frog croak, quieter water — judge on real speakers.
+- [ ] Listen pass: crickets + frog croak at night, birds by day — judge on
+      real speakers.
+
+## Done July 8 2026, round 3 (verified in preview)
+- [x] **Day/night toggle** — sun/moon button under the sound toggle, ~3s
+      dusk/dawn ease. Night = deep-blue multiply pass + moonlight glint on the
+      water + fireflies near the bushes; crickets replace the birds. At night
+      the pup walks in, lies down by the pond, and sleeps (breathing, closed
+      eye, ear twitches, floating z's) until a pat sends her home — she's back
+      ~20s later. Morning wakes her automatically.
+- [x] Frog ribbits when poked (throat puff + croak; tap the frog instead of
+      making a ripple).
+- [x] Ear fix — removed the stray fringe strokes that drew a line down the
+      middle of each ear.
+- [x] iPhone silent-switch audio confirmed working by Lucie.
 
 ## Done July 8 2026, round 2 (verified in preview)
 - [x] More lily pads — 11 across three clusters.

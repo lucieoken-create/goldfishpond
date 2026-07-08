@@ -47,6 +47,8 @@ export function setupInput(canvas, game) {
       if (game.food.armed) {
         game.food.feedAt(x, y, game.water, game.audio);
         game.onFeed(x, y);
+      } else if (game.ambient.frogAt(x, y)) {
+        game.ambient.pokeFrog(game.audio);
       } else {
         game.poke(x, y);
       }

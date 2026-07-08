@@ -1,5 +1,5 @@
 // Boot, resize/DPR handling, fixed-timestep game loop, layer composition.
-import { roundedRectPath } from './util.js';
+import { roundedRectPath, TAU as TAU_ } from './util.js';
 import { computeLayout, renderBackground } from './scene.js';
 import { Water } from './water.js';
 import { createSchool } from './fish.js';
@@ -27,6 +27,8 @@ const game = {
   dog: null,
   ambient: null,
   time: 0,
+  night: false,
+  nightT: 0, // 0 day → 1 night, eased over ~3s
 
   poke(x, y) {
     this.water.disturb(x, y, 2.2, 2.2);
@@ -50,8 +52,9 @@ const game = {
 const HINTS = [
   { text: 'poke the water' },
   { text: 'the little cup by the pond holds fish food' },
-  { text: 'the pup loves a little pat', need: () => game.dog.state !== 'offscreen' },
+  { text: 'the pup loves a little pat', need: () => game.dog.state !== 'offscreen' && !game.dog.asleep },
   { text: 'shh… listen to the garden', need: () => game.audio.unlocked && game.audio.enabled },
+  { text: 'a gentle pat will send the sleepy pup home', need: () => game.dog.asleep },
 ];
 const hintEl = document.getElementById('actionHint');
 let hintIdx = -1;
@@ -130,6 +133,16 @@ soundBtn.addEventListener('click', (e) => {
 // Reflect stored preference (context still needs a gesture to start).
 soundIcon.textContent = game.audio.enabled ? '🔊' : '🔇';
 
+// Day/night toggle.
+const nightBtn = document.getElementById('nightToggle');
+const nightIcon = document.getElementById('nightIcon');
+nightBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  game.audio.unlock();
+  game.night = !game.night;
+  nightIcon.textContent = game.night ? '☀️' : '🌙';
+});
+
 function step(dt) {
   game.time += dt;
   game.water.update();
@@ -137,10 +150,14 @@ function step(dt) {
   for (const f of game.fishes) {
     f.update(dt, game.layout, game.fishes, game.food.pellets, game.water, game.audio, game.time);
   }
-  game.dog.update(dt, game.water, game.audio, game.time);
+  game.dog.update(dt, game.water, game.audio, game.time, game.night);
   game.ambient.update(dt, game.time, game.fishes, game.water, game.audio);
-  game.audio.update(dt);
+  game.audio.update(dt, game.nightT);
   updateHints(game.time);
+
+  // Dusk/dawn: ease toward night over ~3 seconds.
+  const target = game.night ? 1 : 0;
+  game.nightT += Math.sign(target - game.nightT) * Math.min(dt / 3, Math.abs(target - game.nightT));
 }
 
 let fps = 0, fpsFrames = 0, fpsTime = 0;
@@ -176,6 +193,40 @@ function render() {
   if (!cupLifted) game.food.drawCup(ctx, t);
   game.dog.draw(ctx, t);
   if (cupLifted) game.food.drawCup(ctx, t);
+
+  // 7. Night: darken the whole scene toward deep blue, then add glow layers
+  //    on top (moonlight on the water, fireflies) so they cut through.
+  const nt = game.nightT;
+  if (nt > 0.005) {
+    const { vw, vh, pond } = game.layout;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = `rgb(${Math.round(255 - 150 * nt)}, ${Math.round(255 - 128 * nt)}, ${Math.round(255 - 68 * nt)})`;
+    ctx.fillRect(0, 0, vw, vh);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = `rgba(18, 26, 64, ${0.16 * nt})`;
+    ctx.fillRect(0, 0, vw, vh);
+
+    // Moonlight glinting on the water.
+    const mx = pond.x + pond.w * 0.72;
+    const my = pond.y + pond.h * 0.3;
+    const mr = Math.min(pond.w, pond.h) * 0.34;
+    ctx.save();
+    roundedRectPath(ctx, pond.x, pond.y, pond.w, pond.h, game.layout.pondRadius);
+    ctx.clip();
+    ctx.globalCompositeOperation = 'screen';
+    const mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
+    mg.addColorStop(0, `rgba(190, 210, 250, ${0.34 * nt})`);
+    mg.addColorStop(0.5, `rgba(170, 195, 245, ${0.12 * nt})`);
+    mg.addColorStop(1, 'rgba(170, 195, 245, 0)');
+    ctx.fillStyle = mg;
+    ctx.beginPath();
+    ctx.ellipse(mx, my, mr * 1.5, mr, -0.4, 0, TAU_);
+    ctx.fill();
+    ctx.restore();
+
+    // Fireflies over everything.
+    game.ambient.drawFireflies(ctx, t, nt);
+  }
 
   if (DEBUG) {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';

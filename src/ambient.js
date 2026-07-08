@@ -13,6 +13,20 @@ export class Ambient {
   resize(layout) {
     this.layout = layout;
     const { pond } = layout;
+
+    // Fireflies drift near the hedge and bushes; visible only at night.
+    this.fireflies = [];
+    for (let i = 0; i < 9; i++) {
+      this.fireflies.push({
+        ax: rand(0.05, 0.95) * layout.vw,
+        ay: Math.random() < 0.6 ? rand(0.02, 0.16) * layout.vh : rand(0.8, 0.96) * layout.vh,
+        r: rand(20, 60),
+        sx: rand(0.03, 0.09),
+        sy: rand(0.02, 0.07),
+        phase: rand(0, TAU),
+        pulse: rand(0.25, 0.6),
+      });
+    }
     // Three clusters of lily pads (like the reference photo: a big corner
     // cluster plus smaller drifting groups).
     this.pads = [];
@@ -187,6 +201,22 @@ export class Ambient {
         f.hopT = 0;
       }
     }
+  }
+
+  // Is this tap on the frog?
+  frogAt(x, y) {
+    const f = this.frog;
+    return !!f && f.hopT < 0 && Math.hypot(x - f.x, y - f.y) < f.size * 2;
+  }
+
+  // Poked! An indignant little ribbit.
+  pokeFrog(audio) {
+    const f = this.frog;
+    if (!f) return;
+    f.throatT = 0.5;
+    f.blinkT = 0.2;
+    f.croakT = Math.max(f.croakT, 8); // don't double-croak right after
+    audio.croak();
   }
 
   updateDragonfly(dt) {
@@ -406,6 +436,29 @@ export class Ambient {
     }
 
     ctx.restore();
+  }
+
+  // Fireflies: drawn after the night overlay so they actually glow.
+  drawFireflies(ctx, time, nightT) {
+    if (nightT < 0.02) return;
+    for (const f of this.fireflies) {
+      const x = f.ax + Math.sin(time * f.sx * TAU + f.phase) * f.r;
+      const y = f.ay + Math.cos(time * f.sy * TAU + f.phase * 1.7) * f.r * 0.6;
+      const glow = Math.pow(Math.sin(time * f.pulse * TAU + f.phase) * 0.5 + 0.5, 2.2) * nightT;
+      if (glow < 0.03) continue;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
+      g.addColorStop(0, `rgba(226, 240, 150, ${0.85 * glow})`);
+      g.addColorStop(0.35, `rgba(210, 230, 120, ${0.3 * glow})`);
+      g.addColorStop(1, 'rgba(210, 230, 120, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, 9, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = `rgba(250, 252, 220, ${0.9 * glow})`;
+      ctx.beginPath();
+      ctx.arc(x, y, 1.6, 0, TAU);
+      ctx.fill();
+    }
   }
 
   drawFlyers(ctx, time) {

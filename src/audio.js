@@ -10,6 +10,8 @@ export class AudioEngine {
     this.unlocked = false;
     this.rustleTimer = 0;
     this.birdTimer = rand(4, 9);
+    this.cricketTimer = rand(1, 4);
+    this.nightT = 0;
   }
 
   // Called on first user gesture.
@@ -165,7 +167,8 @@ export class AudioEngine {
   }
 
   // Call periodically from the game loop to schedule rustle swells.
-  update(dt) {
+  update(dt, nightT = 0) {
+    this.nightT = nightT;
     if (!this.ctx || !this.rustleGain) return;
     this.rustleTimer -= dt;
     if (this.rustleTimer <= 0) {
@@ -177,11 +180,40 @@ export class AudioEngine {
       this.rustleGain.gain.setTargetAtTime(0.001, t + rise, rise * 0.8);
     }
 
-    // A bird sings somewhere in the hedge every so often.
+    // A bird sings somewhere in the hedge every so often — daytime only.
     this.birdTimer -= dt;
     if (this.birdTimer <= 0) {
       this.birdTimer = rand(10, 28);
-      this.birdSong();
+      if (this.nightT < 0.4) this.birdSong();
+    }
+
+    // Crickets take the night shift.
+    this.cricketTimer -= dt;
+    if (this.cricketTimer <= 0) {
+      this.cricketTimer = rand(2.5, 7);
+      if (this.nightT > 0.6) this.cricketChirp();
+    }
+  }
+
+  // A cricket: a fast train of tiny high pulses.
+  cricketChirp() {
+    if (!this.ready()) return;
+    let t = this.ctx.currentTime + 0.05;
+    const pulses = 5 + Math.floor(rand(0, 5));
+    const f = rand(3800, 4600);
+    const level = rand(0.006, 0.012);
+    for (let i = 0; i < pulses; i++) {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.frequency.value = f * rand(0.98, 1.02);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(level, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+      osc.connect(g);
+      g.connect(this.master);
+      osc.start(t);
+      osc.stop(t + 0.045);
+      t += 0.055;
     }
   }
 

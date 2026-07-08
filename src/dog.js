@@ -16,6 +16,9 @@ const PANT = 'pant';
 const DRINK = 'drink';
 const TILT = 'tilt';
 const PET = 'pet';
+const LIE = 'lie';
+const SLEEP = 'sleep';
+const WAKE = 'wake';
 const EXIT = 'exit';
 
 export class Dog {
@@ -44,6 +47,11 @@ export class Dog {
     this.jump = 0;
     this.hearts = [];
     this.visitT = 0;
+    this.lie = 0;            // 0 standing → 1 lying down
+    this.lieT = 0;
+    this.asleep = false;
+    this.zzz = [];           // floating sleep-z particles
+    this.zTimer = 0;
 
     // Ear spring followers (angle offset, velocity).
     this.earA = 0; this.earV = 0;
@@ -69,7 +77,7 @@ export class Dog {
     this.timer = duration;
   }
 
-  update(dt, water, audio, time) {
+  update(dt, water, audio, time, night) {
     const L = this.layout;
     const s = this.scale;
     const walkSpeed = 105 * s;
@@ -77,8 +85,9 @@ export class Dog {
     this.timer -= dt;
 
     // Watchdog: no visit should ever last more than ~30s. If a state machine
-    // hiccup leaves the dog stranded, walk her off gracefully.
-    if (this.state === OFFSCREEN) {
+    // hiccup leaves the dog stranded, walk her off gracefully. (Sleeping is
+    // exempt — she stays until petted or morning.)
+    if (this.state === OFFSCREEN || this.state === SLEEP) {
       this.visitT = 0;
     } else if (this.state !== EXIT) {
       this.visitT += dt;
@@ -98,6 +107,14 @@ export class Dog {
       h.x += Math.sin(h.age * 5) * 7 * dt;
     }
     this.hearts = this.hearts.filter(h => h.age < 1.6);
+
+    // Sleep-z's drift up and away.
+    for (const z of this.zzz) {
+      z.age += dt;
+      z.y -= 14 * s * dt;
+      z.x += this.dir * 8 * s * dt;
+    }
+    this.zzz = this.zzz.filter(z => z.age < 2.4);
 
     switch (this.state) {
       case OFFSCREEN:
@@ -120,9 +137,17 @@ export class Dog {
         this.walkPhase += walkSpeed * dt / (14 * s);
         const arrived = this.dir === 1 ? this.x >= this.stopX : this.x <= this.stopX;
         if (arrived) {
-          this.setState(LOOK_WATER, rand(1.2, 2));
-          this.headPitchT = 0.5; // muzzle up toward the water
-          this.tailWagT = 0.8;
+          if (night) {
+            // Time for bed: circle once (implied), settle down by the pond.
+            this.setState(LIE, 1.4);
+            this.headPitchT = 0;
+            this.faceBlendT = 0;
+            this.tailWagT = 0.15;
+          } else {
+            this.setState(LOOK_WATER, rand(1.2, 2));
+            this.headPitchT = 0.5; // muzzle up toward the water
+            this.tailWagT = 0.8;
+          }
         }
         break;
       }
@@ -202,6 +227,37 @@ export class Dog {
         break;
       }
 
+      case LIE:
+        this.lieT = 1;
+        if (this.timer <= 0) {
+          this.asleep = true;
+          this.setState(SLEEP, 99999);
+        }
+        break;
+
+      case SLEEP:
+        // Occasional ear twitch.
+        if (Math.random() < dt / 7) this.earV += rand(2, 4);
+        // Floating z's.
+        this.zTimer -= dt;
+        if (this.zTimer <= 0) {
+          this.zTimer = rand(1.4, 2.2);
+          this.zzz.push({ x: this.x + this.dir * 42 * s, y: L.dogPathY - 24 * s, age: 0 });
+        }
+        // Morning: wake up on her own.
+        if (!night) this.wakeUp();
+        break;
+
+      case WAKE:
+        this.lieT = 0;
+        this.tailWagT = 2.6;
+        if (this.timer <= 0) {
+          this.happyExit = true;
+          this.setState(EXIT, 30);
+          this.dir = Math.random() < 0.5 ? this.dir : -this.dir;
+        }
+        break;
+
       case EXIT: {
         this.x += this.dir * walkSpeed * dt;
         this.walkPhase += walkSpeed * dt / (14 * s);
@@ -224,10 +280,11 @@ export class Dog {
     this.tailWag = lerp(this.tailWag, this.tailWagT, ease);
     this.mouthOpen = lerp(this.mouthOpen, this.mouthOpenT, clamp(dt * 6, 0, 1));
 
-    // Body bob from walking.
+    // Body bob from walking; ease the lie-down blend.
     const walking = this.state === ENTER || this.state === EXIT;
     const bobT = walking ? Math.sin(this.walkPhase * 2) * 1.6 * s : 0;
     this.bob = lerp(this.bob, bobT, clamp(dt * 8, 0, 1));
+    this.lie = lerp(this.lie, this.lieT, clamp(dt * 2.2, 0, 1));
 
     // Ear spring: follows -(body bob + head motion) with lag & overshoot.
     const earTarget = -this.bob * 0.12 - this.headPitch * 0.25 - this.jump * 0.02;
@@ -258,13 +315,25 @@ export class Dog {
   }
 
   pet() {
-    if (this.state === OFFSCREEN || this.state === PET) return false;
+    if (this.state === OFFSCREEN || this.state === PET || this.state === WAKE) return false;
     const s = this.scale;
-    this.yOffT = 0;
-    this.headRollT = 0;
-    this.setState(PET, 1.3);
+    if (this.state === SLEEP || this.state === LIE) {
+      // A gentle pat wakes her; she gets up and heads home.
+      this.wakeUp();
+    } else {
+      this.yOffT = 0;
+      this.headRollT = 0;
+      this.setState(PET, 1.3);
+    }
     this.hearts.push({ x: this.x + rand(-6, 6) * s, y: this.layout.dogPathY - 66 * s, age: 0 });
     return true;
+  }
+
+  wakeUp() {
+    this.asleep = false;
+    this.lieT = 0;
+    this.zzz.length = 0;
+    this.setState(WAKE, 1.4);
   }
 
   // After a non-pant variation: 30% chance of a pant chaser — always leave happy.
@@ -293,6 +362,16 @@ export class Dog {
     }
     ctx.globalAlpha = 1;
 
+    // Sleep-z's, also in screen space.
+    for (const z of this.zzz) {
+      const a = z.age < 1.8 ? 0.75 : ((2.4 - z.age) / 0.6) * 0.75;
+      ctx.globalAlpha = clamp(a, 0, 0.75);
+      ctx.fillStyle = '#e8eeff';
+      ctx.font = `italic ${Math.round(9 + z.age * 6 + s * 2)}px Georgia, serif`;
+      ctx.fillText('z', z.x, z.y);
+    }
+    ctx.globalAlpha = 1;
+
     if (this.state === OFFSCREEN) return;
     const dir = this.dir;
     const groundY = L.dogPathY + this.yOff;
@@ -301,8 +380,10 @@ export class Dog {
     ctx.translate(this.x, groundY - this.jump);
     ctx.scale(dir, 1);
 
-    const legH = 15 * s;
-    const bodyH = 24 * s;
+    const lie = this.lie;
+    const breath = this.asleep ? 1 + 0.03 * Math.sin(time * TAU * 0.22) : 1;
+    const legH = 15 * s * (1 - lie * 0.82); // body sinks as she lies down
+    const bodyH = 24 * s * breath;
     const bodyLen = 62 * s;
     const cy = -(legH + bodyH * 0.5) + this.bob; // body center y
 
@@ -315,7 +396,7 @@ export class Dog {
     const walking = this.state === ENTER || this.state === EXIT;
 
     // --- Far legs (darker) ---
-    this.drawLegPair(ctx, s, legH, cy, bodyH, bodyLen, walking, true);
+    if (lie < 0.55) this.drawLegPair(ctx, s, legH, cy, bodyH, bodyLen, walking, true);
 
     // --- Tail: feathered, wagging ---
     const wag = Math.sin(time * TAU * this.tailWag) * (0.2 + this.tailWag * 0.09);
@@ -383,7 +464,17 @@ export class Dog {
     ctx.globalAlpha = 1;
 
     // --- Near legs ---
-    this.drawLegPair(ctx, s, legH, cy, bodyH, bodyLen, walking, false);
+    if (lie < 0.55) {
+      this.drawLegPair(ctx, s, legH, cy, bodyH, bodyLen, walking, false);
+    } else {
+      // Lying down: front paws tucked forward under the chin.
+      ctx.fillStyle = COAT;
+      for (const px of [0.44, 0.52]) {
+        ctx.beginPath();
+        ctx.ellipse(bodyLen * px, -1.5 * s, 4.5 * s, 2.4 * s, 0, 0, TAU);
+        ctx.fill();
+      }
+    }
 
     // --- Head ---
     const neckX = bodyLen * 0.42;
@@ -433,16 +524,18 @@ export class Dog {
   // DRINK pose pushes it further so the head reaches over the coping.
   drawSideHead(ctx, s, neckX, neckY, time) {
     const drink = this.state === DRINK;
+    const lie = this.lie;
     // Drinking: the head reaches forward and DIPS DOWN to the water surface
-    // (like leaning over the coping). Otherwise pitch raises the muzzle.
-    const pitch = drink ? this.headPitch * 0.55 : -this.headPitch * 0.45;
+    // (like leaning over the coping). Lying: the head settles low, chin
+    // resting toward the paws. Otherwise pitch raises the muzzle.
+    const pitch = drink ? this.headPitch * 0.55 : -this.headPitch * 0.45 + lie * 0.3;
     const reach = drink ? this.headPitch * 10 * s : 0;
 
     // Head pivot in body space. The neck is a thick capsule stroked from
     // inside the chest to this pivot — drawn un-rotated, so the head stays
     // attached however far it reaches over the coping to drink.
-    const hx = neckX + reach;
-    const hy = neckY + reach * 0.4;
+    const hx = neckX + reach - lie * 3 * s;
+    const hy = neckY + reach * 0.4 + lie * 10 * s;
     ctx.strokeStyle = COAT;
     ctx.lineCap = 'round';
     ctx.lineWidth = 12 * s;
@@ -483,15 +576,24 @@ export class Dog {
     ctx.ellipse(6 * s + mLen + 1.5 * s, -hr * 0.55, 2.4 * s, 2 * s, 0, 0, TAU);
     ctx.fill();
 
-    // Eye.
-    ctx.fillStyle = '#2a211a';
-    ctx.beginPath();
-    ctx.arc(6 * s, -hr * 0.75, 1.7 * s, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.beginPath();
-    ctx.arc(6.5 * s, -hr * 0.85, 0.6 * s, 0, TAU);
-    ctx.fill();
+    // Eye — a soft closed curve while she sleeps.
+    if (this.asleep) {
+      ctx.strokeStyle = '#2a211a';
+      ctx.lineWidth = 1.2 * s;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(6 * s, -hr * 0.8, 1.8 * s, 0.25, Math.PI - 0.25);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#2a211a';
+      ctx.beginPath();
+      ctx.arc(6 * s, -hr * 0.75, 1.7 * s, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.beginPath();
+      ctx.arc(6.5 * s, -hr * 0.85, 0.6 * s, 0, TAU);
+      ctx.fill();
+    }
 
     // Lapping tongue while drinking.
     if (drink && this.stateT > 0.7) {
@@ -528,17 +630,6 @@ export class Dog {
     ctx.quadraticCurveTo(-3.5 * s * flip, 12 * s, -2 * s * flip, 3 * s);
     ctx.closePath();
     ctx.fill();
-    // Fringed edge wisps.
-    ctx.strokeStyle = COAT_DEEP;
-    ctx.lineWidth = 1.2 * s;
-    ctx.lineCap = 'round';
-    for (let i = 0; i < 3; i++) {
-      const t = 0.5 + i * 0.22;
-      ctx.beginPath();
-      ctx.moveTo(4.5 * s * flip * t, 13 * s * t);
-      ctx.lineTo(5.5 * s * flip * t, 13 * s * t + 3.5 * s);
-      ctx.stroke();
-    }
   }
 
   // Front-facing head for the pant / tilt poses — looking right at you.
